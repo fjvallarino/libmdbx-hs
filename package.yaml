@@ -1,0 +1,50 @@
+name:                libmdbx-hs
+version:             0.1.0.0
+github:              "fjvallarino/libmdbx-hs"
+license:             BSD3
+author:              "Francisco Vallarino"
+maintainer:          "fjvallarino@gmail.com"
+copyright:           "2021 Francisco Vallarino"
+
+extra-source-files:
+- README.md
+- ChangeLog.md
+
+# Metadata used when publishing your package
+# synopsis:            Short description of your package
+# category:            Web
+
+# To avoid duplicated efforts in documentation and dealing with the
+# complications of embedding Haddock markup inside cabal files, it is
+# common to point users to the README.md file.
+description:         Please see the README on GitHub at <https://github.com/githubuser/libmdbx-hs#readme>
+
+dependencies:
+- base >= 4.7 && < 5
+
+library:
+  source-dirs: src
+  include-dirs: cbits/libmdbx
+  c-sources: cbits/libmdbx/mdbx.c
+
+executables:
+  libmdbx-hs-exe:
+    main: Main.hs
+    source-dirs: app
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - libmdbx-hs
+
+tests:
+  libmdbx-hs-test:
+    main: Spec.hs
+    source-dirs: test
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - libmdbx-hs
