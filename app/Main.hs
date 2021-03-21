@@ -1,15 +1,20 @@
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TupleSections #-}
 
 module Main where
 
+import Control.Monad (forM_)
 import Data.Bits
 import Foreign.Marshal.Alloc
 import Foreign.Ptr
 import Foreign.Storable
-
-import Lib
-import Internal.LibMDX
 import System.IO.Unsafe (unsafePerformIO)
+
+import Internal.LibMDX
+import Lib
+
+import Store
 
 main :: IO ()
 main = do
@@ -19,6 +24,31 @@ main = do
 --  runDB
 --  putStrLn "Exiting"
 
+runDB :: IO ()
+runDB = do
+  (_, env) <- mdbx_env_create
+  _ <- mdbx_env_open env "./testdb" [MdbxNosubdir, MdbxCoalesce, MdbxLiforeclaim] 0o644
+  putItems env pairs
+--  getItems env ["mark"] >>= \case
+--    Right (items :: [User]) -> print items
+--    Left ex -> print ex
+  getItems env ["mark", "dale"] >>= \case
+    Right (items :: [User]) -> print items
+    Left ex -> print ex
+
+  mdbx_env_close env
+  print "Done"
+
+  where
+    users = [
+      User "john" "test",
+      User "mark" "hide",
+      User "dale" "done",
+      User "carl" "past"
+      ]
+    pairs = (\u -> (_username u, u)) <$> users
+
+{--
 runDB :: IO ()
 runDB = do
   (r1, env) <- mdbx_env_create
@@ -109,4 +139,4 @@ newMdbxVal val = do
   return (mk valP, castPtr valP)
   where
     mk ptr = MdbxVal (fromIntegral $ sizeOf val) (castPtr ptr)
-
+--}

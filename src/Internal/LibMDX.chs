@@ -45,7 +45,8 @@ type MdbxEnvMode = {# type mdbx_mode_t  #}
 {# fun unsafe mdbx_env_close {`MdbxEnv'} -> `Int' #}
 
 {-- Closes an env (env, dontSync) --}
-{# fun unsafe mdbx_env_close_ex {`MdbxEnv', `Bool'} -> `Int' #}
+-- Fails under ghci
+-- {# fun unsafe mdbx_env_close_ex {`MdbxEnv', `Bool'} -> `Int' #}
 
 -- Transaction
 {# pointer *MDBX_txn as MdbxTxn newtype #}
