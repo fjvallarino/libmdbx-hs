@@ -21,9 +21,7 @@ description:         Please see the README on GitHub at <https://github.com/gith
 
 dependencies:
 - base >= 4.7 && < 5
-- bytestring
 - mtl
-- store
 - text
 
 library:
@@ -41,6 +39,8 @@ executables:
     - -with-rtsopts=-N
     dependencies:
     - libmdbx-hs
+    - bytestring
+    - store
 
 tests:
   libmdbx-hs-test:

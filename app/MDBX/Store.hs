@@ -16,8 +16,8 @@ newtype MdbxItemStore a = MdbxItemStore {
 }
 
 instance Store a => MdbxItem (MdbxItemStore a) where
-  fromMdbxItem item = MdbxItemStore <$> fromMdbxStore item
-  withMdbxItem item = withMdbxStore (unwrapStore item)
+  fromMdbxVal item = MdbxItemStore <$> fromMdbxStore item
+  toMdbxVal item = withMdbxStore (unwrapStore item)
 
 fromMdbxStore :: Store v => MdbxVal -> IO v
 fromMdbxStore (MdbxVal size ptr) = do
