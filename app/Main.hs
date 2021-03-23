@@ -1,9 +1,8 @@
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TupleSections #-}
+{-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TypeApplications #-}
 
 module Main where
@@ -14,29 +13,26 @@ import Data.Text (Text)
 import GHC.Generics
 
 import MDBX
-import Store
+import MDBX.Store
 
 data User = User {
   _username :: Text,
   _password :: Text
 } deriving (Eq, Show, Generic, Store)
 
-openEnvDbi = do
-  env <- envOpen "./testdb" [MdbxNosubdir, MdbxCoalesce, MdbxLiforeclaim]
-  dbi <- dbiOpen env Nothing []
-  return (env, dbi)
+deriving via (MdbxItemStore User) instance MdbxItem User
 
-closeEnvDbi (env, dbi) = do
-  envClose env
-  print "Done"
+openEnvDbi :: IO MdbxEnv
+openEnvDbi = envOpen "./testdb" [MdbxNosubdir, MdbxCoalesce, MdbxLiforeclaim]
 
 main :: IO ()
-main = bracket openEnvDbi closeEnvDbi $ \(env, dbi) -> do
+main = bracket openEnvDbi envClose $ \env -> do
+  dbi <- dbiOpen env Nothing []
   putItems env dbi pairs
-  getItems env dbi ["mark", "dale"] >>= print @ [User]
-  getItems env dbi ["john", "carl"] >>= print @ [User]
-  getItems env dbi (_username <$> users) >>= print @ [User]
-  getItemsRange env dbi "dale" "mark" >>= mapM_ (print @ (Text, User))
+  getItems @Text env dbi ["mark", "dale"] >>= print @[User]
+  getItems @Text env dbi ["john", "carl"] >>= print @[User]
+  getItems env dbi (_username <$> users) >>= print @[User]
+  getRange @Text env dbi "dale" "mark" >>= mapM_ (print @User)
   where
     users = [
       User "mark" "hide",

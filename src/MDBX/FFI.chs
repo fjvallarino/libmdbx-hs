@@ -1,17 +1,10 @@
 {-# LANGUAGE GeneralisedNewtypeDeriving #-}
-{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StandaloneDeriving #-}
 
-module Internal.MDBX where
+module MDBX.FFI where
 
-import Data.Bits
 import Foreign
 import Foreign.C
-import Foreign.Marshal.Alloc
-import Foreign.Marshal.Utils
-import Foreign.Ptr
-import Foreign.ForeignPtr
-import Foreign.Storable
 
 #include "mdbx.h"
 
