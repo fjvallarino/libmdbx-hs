@@ -19,10 +19,8 @@ import Foreign.Storable
 bitMask :: Enum a => [a] -> C2HSImp.CInt
 bitMask = foldl (.|.) 0 . fmap (fromIntegral . fromEnum)
 
--- Helpers
+-- Common
 {# typedef size_t CSize #}
-
-{# fun unsafe mdbx_strerror {`Int'} -> `String' #}
 
 {# enum MDBX_error_t as MdbxError {underscoreToCase} deriving (Show, Eq, Ord) #}
 
@@ -85,7 +83,10 @@ type MdbxDbi = {# type MDBX_dbi #}
 data MdbxVal = MdbxVal {
   mvlSize :: {-# UNPACK #-} !{# type size_t #},
   mvlData :: {-# UNPACK #-} !(Ptr ())
-}
+} deriving (Eq, Show)
+
+--instance Show MdbxVal where
+--  show (MdbxVal sz dt) = "MdbxVal { size = " ++ show sz ++ ", data = " ++ show dt ++ " }"
 
 instance Storable MdbxVal where
   sizeOf _ = {# sizeof MDBX_val #}
@@ -97,6 +98,9 @@ instance Storable MdbxVal where
   poke ptr (MdbxVal sz pd) = do
     {# set MDBX_val->iov_len #} ptr sz
     {# set MDBX_val->iov_base #} ptr pd
+
+emptyMdbxVal :: MdbxVal
+emptyMdbxVal = MdbxVal 0 nullPtr
 
 {# pointer *MDBX_val as MdbxValPtr -> MdbxVal #}
 
@@ -112,28 +116,33 @@ instance Storable MdbxVal where
 {# fun unsafe mdbx_del {`MdbxTxn', `MdbxDbi', with* `MdbxVal', withMaybe* `Maybe MdbxVal'} -> `Int' #}
 
 -- Cursor
-{# pointer *MDBX_cursor newtype #}
-deriving instance Storable MDBX_cursor
+{# pointer *MDBX_cursor as MdbxCursor newtype #}
+deriving instance Storable MdbxCursor
 
 {# enum MDBX_cursor_op as MdbxCursorOp {underscoreToCase} deriving (Show, Eq, Ord) #}
 
 {-- Opens a new curspr (txn, dbi) --}
-{# fun unsafe mdbx_cursor_open {`MdbxTxn', `MdbxDbi', alloca- `MDBX_cursor' peek*} -> `Int' #}
+{# fun unsafe mdbx_cursor_open {`MdbxTxn', `MdbxDbi', alloca- `MdbxCursor' peek*} -> `Int' #}
 
-{-- Closes a cursor (txn, dbi) --}
-{# fun unsafe mdbx_cursor_close {`MDBX_cursor'} -> `()' #}
-
-{-- Returns the count of duplicates in the current key (txn, dbi) --}
-{# fun unsafe mdbx_cursor_count {`MDBX_cursor', alloca- `CSize' peek*} -> `Int' #}
+{-- Closes a cursor (cursor) --}
+{# fun unsafe mdbx_cursor_close {`MdbxCursor'} -> `()' #}
 
 {-- Removes the current key/value pair (cursor, flags) --}
-{# fun unsafe mdbx_cursor_del {`MDBX_cursor', bitMask`[MdbxPutFlags]'} -> `Int' #}
+{# fun unsafe mdbx_cursor_del {`MdbxCursor', bitMask`[MdbxPutFlags]'} -> `Int' #}
 
 {-- Returns the current key/value pair (cursor, cursorOp) --}
-{# fun unsafe mdbx_cursor_get {`MDBX_cursor', alloca- `MdbxVal' peek*, alloca- `MdbxVal' peek*, `MdbxCursorOp'} -> `Int' #}
+{# fun unsafe mdbx_cursor_get {`MdbxCursor', with* `MdbxVal' peek*, alloca- `MdbxVal' peek*, `MdbxCursorOp'} -> `Int' #}
 
 {-- Sets the value for the current key (cursor, key, value, flags) --}
-{# fun unsafe mdbx_cursor_put {`MDBX_cursor', with* `MdbxVal', with* `MdbxVal', bitMask`[MdbxPutFlags]'} -> `Int' #}
+{# fun unsafe mdbx_cursor_put {`MdbxCursor', with* `MdbxVal', with* `MdbxVal', bitMask`[MdbxPutFlags]'} -> `Int' #}
+
+{-- Returns the count of duplicates in the current key (txn, dbi) --}
+{# fun unsafe mdbx_cursor_count {`MdbxCursor', alloca- `CSize' peek*} -> `Int' #}
+
+-- Helpers
+{# fun unsafe mdbx_strerror {`Int'} -> `String' #}
+
+{# fun unsafe mdbx_cmp {`MdbxTxn', `MdbxDbi', with* `MdbxVal', with* `MdbxVal'} -> `Int' #}
 
 maybeString :: Maybe String -> (Ptr CChar -> IO c) -> IO c
 maybeString Nothing fn = fn nullPtr
