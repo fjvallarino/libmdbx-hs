@@ -33,9 +33,9 @@ closeEnvDbi (env, dbi) = do
 main :: IO ()
 main = bracket openEnvDbi closeEnvDbi $ \(env, dbi) -> do
   putItems env dbi pairs
---  getItems env dbi ["mark", "dale"] >>= print @ [User]
---  getItems env dbi ["john", "carl"] >>= print @ [User]
---  getItems env dbi (_username <$> users) >>= print @ [User]
+  getItems env dbi ["mark", "dale"] >>= print @ [User]
+  getItems env dbi ["john", "carl"] >>= print @ [User]
+  getItems env dbi (_username <$> users) >>= print @ [User]
   getItemsRange env dbi "dale" "mark" >>= mapM_ (print @ (Text, User))
   where
     users = [
