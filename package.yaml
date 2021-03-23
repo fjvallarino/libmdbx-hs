@@ -41,6 +41,7 @@ executables:
     - libmdbx-hs
     - bytestring
     - store
+    - string-interpolate
 
 tests:
   libmdbx-hs-test:
