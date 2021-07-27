@@ -1,10 +1,10 @@
 name:                libmdbx-hs
 version:             0.1.0.0
-github:              "fjvallarino/libmdbx-hs"
+github:              fjvallarino/libmdbx-hs
 license:             BSD3
-author:              "Francisco Vallarino"
-maintainer:          "fjvallarino@gmail.com"
-copyright:           "2021 Francisco Vallarino"
+author:              Francisco Vallarino
+maintainer:          fjvallarino@gmail.com
+copyright:           2021 Francisco Vallarino
 
 extra-source-files:
 - README.md
@@ -17,7 +17,11 @@ extra-source-files:
 # To avoid duplicated efforts in documentation and dealing with the
 # complications of embedding Haddock markup inside cabal files, it is
 # common to point users to the README.md file.
-description:         Please see the README on GitHub at <https://github.com/githubuser/libmdbx-hs#readme>
+description: |
+  Haskell bindings for [libmdbx](https://github.com/erthink/libmdbx).
+
+  See documentation in the main module or check the README on GitHub at
+  <https://github.com/githubuser/libmdbx-hs#readme>.
 
 dependencies:
 - base >= 4.7 && < 5

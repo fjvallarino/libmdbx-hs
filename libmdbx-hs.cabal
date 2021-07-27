@@ -1,0 +1,83 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.34.4.
+--
+-- see: https://github.com/sol/hpack
+--
+-- hash: 641de98287d0dcb26d103e897d715f5eb1f50dcbe6c3db31bda92f0b51e3e166
+
+name:           libmdbx-hs
+version:        0.1.0.0
+description:    Haskell bindings for [libmdbx](https://github.com/erthink/libmdbx).
+                .
+                See documentation in the main module or check the README on GitHub at
+                <https://github.com/githubuser/libmdbx-hs#readme>.
+homepage:       https://github.com/fjvallarino/libmdbx-hs#readme
+bug-reports:    https://github.com/fjvallarino/libmdbx-hs/issues
+author:         Francisco Vallarino
+maintainer:     fjvallarino@gmail.com
+copyright:      2021 Francisco Vallarino
+license:        BSD3
+license-file:   LICENSE
+build-type:     Simple
+extra-source-files:
+    README.md
+    ChangeLog.md
+
+source-repository head
+  type: git
+  location: https://github.com/fjvallarino/libmdbx-hs
+
+library
+  exposed-modules:
+      Mdbx
+      Mdbx.API
+      Mdbx.Database
+      Mdbx.FFI
+      Mdbx.Types
+  other-modules:
+      Paths_libmdbx_hs
+  hs-source-dirs:
+      src
+  include-dirs:
+      cbits/libmdbx
+  c-sources:
+      cbits/libmdbx/mdbx.c
+  build-depends:
+      base >=4.7 && <5
+    , mtl
+    , text
+  default-language: Haskell2010
+
+executable libmdbx-hs-exe
+  main-is: Main.hs
+  other-modules:
+      Mdbx.Store
+      Paths_libmdbx_hs
+  hs-source-dirs:
+      app
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      base >=4.7 && <5
+    , bytestring
+    , libmdbx-hs
+    , mtl
+    , store
+    , string-interpolate
+    , text
+  default-language: Haskell2010
+
+test-suite libmdbx-hs-test
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  other-modules:
+      Paths_libmdbx_hs
+  hs-source-dirs:
+      test
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      base >=4.7 && <5
+    , libmdbx-hs
+    , mtl
+    , text
+  default-language: Haskell2010

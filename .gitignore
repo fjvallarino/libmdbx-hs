@@ -1,4 +1,3 @@
 .stack-work/
 *~
-libmdbx-hs.cabal
 testdb*

@@ -15,8 +15,8 @@ import Data.String.Interpolate (i)
 import Data.Text (Text)
 import GHC.Generics
 
-import MDBX
-import MDBX.Store
+import Mdbx
+import Mdbx.Store
 
 data User = User {
   _username :: Text,
@@ -35,16 +35,26 @@ main :: IO ()
 main = bracket openEnvDbi envClose $ \env -> do
   dbi <- dbiOpen env Nothing []
   putItems env dbi pairs
-  getItems @Text env dbi ["mark", "dale"] >>= print @[User]
-  getItems @Text env dbi ["john", "carl"] >>= print @[User]
+  getItems env dbi keys1 >>= print @[User]
+  getItems env dbi keys2 >>= print @[User]
   getItems env dbi (_username <$> users) >>= print @[User]
-  getRange @Text env dbi "user-dale" "user-mark" >>= mapM_ (print @User)
+  getRange env dbi range1 range2 >>= mapM_ (print @User)
   where
+    keys1 = ["mark", "dale"] :: [Text]
+    keys2 = ["john", "carl"] :: [Text]
+    range1 = "user-user-327" :: Text
+    range2 = "user-user-999" :: Text
     users = [
       User "mark" "hide",
       User "john" "test",
       User "ernest" "password",
       User "dale" "done",
-      User "carl" "past"
+      User "carl" "past",
+      User "user-001" "test",
+      User "user-101" "test",
+      User "user-950" "test",
+      User "user-327" "test",
+      User "user-425" "test",
+      User "user-897" "test"
       ]
     pairs = (\u -> (userKey u, u)) <$> users

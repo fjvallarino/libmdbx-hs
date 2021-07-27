@@ -1,4 +1,4 @@
-module MDBX.Store (
+module Mdbx.Store (
   MdbxItemStore(..),
   fromMdbxStore,
   withMdbxStore
@@ -9,7 +9,7 @@ import Data.Coerce (coerce)
 import Data.Store (Store, decodeIO, encode)
 import Foreign.Ptr
 
-import MDBX
+import Mdbx
 
 newtype MdbxItemStore a = MdbxItemStore {
   unwrapStore :: a
