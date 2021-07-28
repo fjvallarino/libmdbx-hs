@@ -47,7 +47,7 @@ import Control.Monad.IO.Class (MonadIO, liftIO)
 import Mdbx.FFI
 
 {-|
-Compares two keys and returns 0, 1 or -1 if key1 is lower, equal or greater than
+Compares two keys and returns -1, 0 or 1 if key1 is lower, equal or greater than
 key2.
 -}
 keyCmp
@@ -145,7 +145,7 @@ itemGet txn db key = do
     then return Nothing
     else checkError (Just val) ret
 
--- | Saves the provided key-value pair.
+-- | Saves the provided key/value pair.
 itemPut
   :: (MonadIO m, MonadFail m)
   => MdbxTxn

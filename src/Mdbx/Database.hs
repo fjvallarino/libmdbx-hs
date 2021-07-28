@@ -95,7 +95,7 @@ getRange env dbi start end = do
   void $ txnCommit txn
   return $ reverse pairs
 
--- | Saves the given key-value pair.
+-- | Saves the given key/value pair.
 putItem
   :: (MonadIO m, MonadFail m, MdbxItem k, MdbxItem v)
   => MdbxEnv       -- ^ The environment.
@@ -110,12 +110,12 @@ putItem env dbi key item = do
       itemPut txn dbi mkey mitem []
   void $ txnCommit txn
 
--- | Saves the given key-value pairs. Runs in a single transaction.
+-- | Saves the given key/value pairs. Runs in a single transaction.
 putItems
   :: (MonadIO m, MonadFail m, MdbxItem k, MdbxItem v)
   => MdbxEnv       -- ^ The environment.
   -> MdbxDbi       -- ^ The database.
-  -> [(k, v)]      -- ^ The list of key-value pairs.
+  -> [(k, v)]      -- ^ The list of key/value pairs.
   -> m ()
 putItems env dbi items = do
   txn <- txnBegin env Nothing []
@@ -157,13 +157,13 @@ delItems env dbi keys = do
 
 -- Helpers
 
--- | Checks if the key of the key-value pair is lower than the provided key.
+-- | Checks if the key of the key/value pair is lower than the provided key.
 pairLEKey
   :: (MonadIO m, MonadFail m)
   => MdbxTxn       -- ^ The active transaction.
   -> MdbxDbi       -- ^ The database.
   -> MdbxVal       -- ^ The reference key.
-  -> Maybe (MdbxVal, MdbxVal)  -- ^ The key-value pair to check
-  -> m Bool        -- ^ True if the key-value is lower or equal than the key.
+  -> Maybe (MdbxVal, MdbxVal)  -- ^ The key/value pair to check
+  -> m Bool        -- ^ True if the key/value is lower or equal than the key.
 pairLEKey txn dbi end Nothing = return False
 pairLEKey txn dbi end (Just (key, _)) = (<= 0) <$> keyCmp txn dbi key end
