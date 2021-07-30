@@ -1,4 +1,4 @@
-name:                libmdbx-hs
+name:                libmdbx
 version:             0.1.0.0
 github:              fjvallarino/libmdbx-hs
 license:             BSD3
@@ -11,8 +11,8 @@ extra-source-files:
 - ChangeLog.md
 
 # Metadata used when publishing your package
-# synopsis:            Short description of your package
-# category:            Web
+synopsis:            Bindings for libmdbx, an embedded key/value store
+category:            Database
 
 # To avoid duplicated efforts in documentation and dealing with the
 # complications of embedding Haddock markup inside cabal files, it is
@@ -21,12 +21,12 @@ description: |
   Haskell bindings for [libmdbx](https://github.com/erthink/libmdbx).
 
   See documentation in the main module or check the README on GitHub at
-  <https://github.com/githubuser/libmdbx-hs#readme>.
+  <https://github.com/fjvallarino/libmdbx-hs#readme>.
 
 dependencies:
 - base >= 4.7 && < 5
-- mtl
-- text
+- mtl >= 2.1 && < 2.3
+- text >= 1.2 && < 1.3
 
 library:
   source-dirs: src
@@ -34,7 +34,7 @@ library:
   c-sources: cbits/libmdbx/mdbx.c
 
 executables:
-  libmdbx-hs-exe:
+  libmdbx-exe:
     main: Main.hs
     source-dirs: app
     ghc-options:
@@ -42,10 +42,10 @@ executables:
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
-    - libmdbx-hs
-    - bytestring
-    - store
-    - string-interpolate
+    - libmdbx
+    - bytestring >= 0.10 && < 0.12
+    - store >= 0.7 && < 0.8
+    - string-interpolate >= 0.2 && < 0.4
 
 tests:
   libmdbx-hs-test:
@@ -56,4 +56,4 @@ tests:
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
-    - libmdbx-hs
+    - libmdbx
