@@ -43,7 +43,8 @@ such as <https://hackage.haskell.org/package/store store>,
 <https://hackage.haskell.org/package/cereal cereal>, etc, and apply the newtype
 deriving via trick.
 
-The 'Data.Store.Store' instance can be defined as:
+The <https://hackage.haskell.org/package/store/docs/Data-Store.html#t:Store Store>
+instance can be defined as:
 
 @
 newtype MdbxItemStore a = MdbxItemStore {
@@ -68,10 +69,10 @@ withMdbxStore val fn =
     bsV = encode val
 @
 
-This code can be adaptad to other serialization libraries. It is not provided as
-part of libmdbx-hs itself to avoid forcing dependencies.
+This example can be adapted to other serialization libraries. It is not provided
+as part of libmdbx-hs itself to avoid forcing dependencies.
 
-Then, to derive the instance for your owwn type:
+Then, to derive the instance for your own type:
 
 @
 data User = User {
