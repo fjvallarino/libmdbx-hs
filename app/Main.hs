@@ -34,16 +34,23 @@ userKey user = [i|user-#{_username user}|]
 main :: IO ()
 main = bracket openEnvDbi envClose $ \env -> do
   dbi <- dbiOpen env Nothing []
+
   putItems env dbi pairs
+
   getItems env dbi keys1 >>= print @[User]
   getItems env dbi keys2 >>= print @[User]
   getItems env dbi (_username <$> users) >>= print @[User]
+
   getRange env dbi range1 range2 >>= mapM_ (print @User)
+
   where
     keys1 = ["mark", "dale"] :: [Text]
     keys2 = ["john", "carl"] :: [Text]
+
     range1 = "user-user-327" :: Text
     range2 = "user-user-999" :: Text
+
+    pairs = (\u -> (userKey u, u)) <$> users
     users = [
       User "mark" "hide",
       User "john" "test",
@@ -57,4 +64,3 @@ main = bracket openEnvDbi envClose $ \env -> do
       User "user-425" "test",
       User "user-897" "test"
       ]
-    pairs = (\u -> (userKey u, u)) <$> users

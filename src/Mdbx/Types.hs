@@ -35,14 +35,15 @@ import Mdbx.FFI
 Converts an instance to/from the representation needed by libmdbx. This type is
 used for both keys and values.
 
-Only the Text instance is provided, since it is commonly used as the key when
+Only the 'Text' instance is provided, since it is commonly used as the key when
 storing/retrieving a value.
 
 For your own types, in general, you will want to use a serialization library
-such as store, cereal, etc, and apply the newtype deriving via trick. 
+such as <https://hackage.haskell.org/package/store store>,
+<https://hackage.haskell.org/package/cereal cereal>, etc, and apply the newtype
+deriving via trick.
 
-For store (this can be found in the example application), the instance can be
-defined as:
+The 'Data.Store.Store' instance can be defined as:
 
 @
 newtype MdbxItemStore a = MdbxItemStore {
@@ -82,11 +83,11 @@ deriving via (MdbxItemStore User) instance MdbxItem User
 @
 
 Note: if you plan on using a custom type as the key, be careful if it contains
-Text or Bytestring instances, since these types have a length field which is,
-in general, before the data. This can issues when using cursors, since those
-depend on key ordering and the length field will make shorter instances lower
-than longer ones, even if the content indicates the opposite. In general, it is
-simpler to use Text as the key.
+'Text' or 'Data.ByteString.ByteString' instances, since these types have a
+length field which is, in general, before the data. This causes issues when
+using cursors, since they depend on key ordering and the length field will make
+shorter instances lower than longer ones, even if the content indicates the
+opposite. In general, it is simpler to use 'Text' as the key.
 -}
 class MdbxItem i where
   {-|
