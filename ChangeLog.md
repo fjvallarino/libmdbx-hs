@@ -1,3 +1,5 @@
-# Changelog for libmdbx-hs
+### 0.1.0.0
 
-## Unreleased changes
+* Initial release.
+* Low level API.
+* High level API.
