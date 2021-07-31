@@ -9,7 +9,7 @@ Portability : non-portable
 Low level bindings to libmdbx functions.
 -}
 {-# LANGUAGE DerivingStrategies #-}
-{-# LANGUAGE GeneralisedNewtypeDeriving #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE StandaloneDeriving #-}
 
 module Mdbx.FFI (

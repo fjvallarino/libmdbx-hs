@@ -23,6 +23,7 @@ module Mdbx.Database (
 ) where
 
 import Control.Monad (forM, forM_, void)
+import Control.Monad.Fail (MonadFail)
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Data.Function (fix)
 import Data.Maybe (catMaybes, fromJust)

@@ -3,7 +3,6 @@
 {-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TypeApplications #-}
 
@@ -11,7 +10,6 @@ module Main where
 
 import Control.Exception (bracket)
 import Data.Store
-import Data.String.Interpolate (i)
 import Data.Text (Text)
 import GHC.Generics
 
@@ -29,7 +27,7 @@ openEnvDbi :: IO MdbxEnv
 openEnvDbi = envOpen "./testdb" [MdbxNosubdir, MdbxCoalesce, MdbxLiforeclaim]
 
 userKey :: User -> Text
-userKey user = [i|user-#{_username user}|]
+userKey user = "user-" <> _username user
 
 main :: IO ()
 main = bracket openEnvDbi envClose $ \env -> do

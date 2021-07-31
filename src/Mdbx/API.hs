@@ -43,6 +43,7 @@ module Mdbx.API (
 ) where
 
 import Control.Monad.IO.Class (MonadIO, liftIO)
+import Control.Monad.Fail (MonadFail)
 
 import Mdbx.FFI
 
