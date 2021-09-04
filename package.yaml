@@ -25,17 +25,19 @@ description: |
   on GitHub.
 
 dependencies:
-- base >= 4.12 && < 5
-- mtl >= 2.1 && < 2.3
-- text >= 1.2 && < 1.3
+  - base >= 4.12 && < 5
+  - bytestring >= 0.10 && < 0.12
+  - data-default >= 0.5 && < 0.8
+  - mtl >= 2.1 && < 2.3
+  - text >= 1.2 && < 1.3
 
 library:
   source-dirs: src
   include-dirs: cbits/libmdbx
   install-includes:
-  - cbits/libmdbx/mdbx.h
+    - cbits/libmdbx/mdbx.h
   c-sources:
-  - cbits/libmdbx/mdbx.c
+    - cbits/libmdbx/mdbx.c
   build-tools: c2hs
 
 executables:
@@ -43,21 +45,21 @@ executables:
     main: Main.hs
     source-dirs: app
     ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
+      - -threaded
+      - -rtsopts
+      - -with-rtsopts=-N
     dependencies:
-    - libmdbx
-    - bytestring >= 0.10 && < 0.12
-    - store >= 0.5 && < 0.8
+      - libmdbx
+      - bytestring >= 0.10 && < 0.12
+      - store >= 0.5 && < 0.8
 
 tests:
   libmdbx-hs-test:
     main: Spec.hs
     source-dirs: test
     ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
+      - -threaded
+      - -rtsopts
+      - -with-rtsopts=-N
     dependencies:
-    - libmdbx
+      - libmdbx

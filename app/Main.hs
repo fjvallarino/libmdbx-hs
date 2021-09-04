@@ -9,6 +9,7 @@
 module Main where
 
 import Control.Exception (bracket)
+import Data.Default
 import Data.Store
 import Data.Text (Text)
 import GHC.Generics
@@ -24,7 +25,7 @@ data User = User {
 deriving via (MdbxItemStore User) instance MdbxItem User
 
 openEnvDbi :: IO MdbxEnv
-openEnvDbi = envOpen "./testdb" [MdbxNosubdir, MdbxCoalesce, MdbxLiforeclaim]
+openEnvDbi = envOpen "./testdb" def [MdbxNosubdir, MdbxCoalesce, MdbxLiforeclaim]
 
 userKey :: User -> Text
 userKey user = "user-" <> _username user

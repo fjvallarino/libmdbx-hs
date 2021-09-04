@@ -22,14 +22,36 @@ module Mdbx.Types (
   MdbxPutFlags(..),
   MdbxCursorOp(..),
   -- * High level interface
+  MdbxEnvGeometry(..),
   MdbxItem(..)
 ) where
 
+import Data.ByteString (ByteString, packCStringLen, useAsCStringLen)
+import Data.Default
 import Data.Text (Text)
 import Data.Text.Foreign (fromPtr, useAsPtr)
 import Foreign.Ptr (castPtr)
 
 import Mdbx.FFI
+
+data MdbxEnvGeometry = MdbxEnvGeometry {
+  envSizeMin :: Int,
+  envSizeNow :: Int,
+  envSizeMax :: Int,
+  envGrowthStep :: Int,
+  envShrinkThreshold :: Int,
+  envPageSize :: Int
+} deriving (Eq, Show)
+
+instance Default MdbxEnvGeometry where
+  def = MdbxEnvGeometry {
+    envSizeMin = -1,
+    envSizeNow = -1,
+    envSizeMax = 1024 * 1024 * 1024,
+    envGrowthStep = -1,
+    envShrinkThreshold = -1,
+    envPageSize = -1
+  }
 
 {-|
 Converts an instance to/from the representation needed by libmdbx. This type is
@@ -88,7 +110,7 @@ Note: if you plan on using a custom type as the key, be careful if it contains
 length field which is, in general, before the data. This causes issues when
 using cursors, since they depend on key ordering and the length field will make
 shorter instances lower than longer ones, even if the content indicates the
-opposite. In general, it is simpler to use 'Text' as the key.
+opposite. In general, it is simpler to use 'Text' or 'ByteString' as the key.
 -}
 class MdbxItem i where
   {-|
@@ -108,3 +130,10 @@ instance MdbxItem Text where
 
   toMdbxVal val fn = useAsPtr val $ \ptr size ->
     fn $ MdbxVal (fromIntegral size * 2) (castPtr ptr)
+
+instance MdbxItem ByteString where
+  fromMdbxVal (MdbxVal sz ptr) =
+    packCStringLen (castPtr ptr, fromIntegral sz)
+
+  toMdbxVal val fn = useAsCStringLen val $ \(ptr, size) ->
+    fn $ MdbxVal (fromIntegral size) (castPtr ptr)

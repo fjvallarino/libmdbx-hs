@@ -18,6 +18,7 @@ module Mdbx.FFI (
   MdbxEnv(..),
   MdbxEnvMode(..),
   mdbx_env_create,
+  mdbx_env_set_geometry,
   mdbx_env_open,
   mdbx_env_close,
 
@@ -78,7 +79,7 @@ import Foreign.C
 {# pointer *MDBX_env as MdbxEnv newtype #}
 deriving instance Storable MdbxEnv
 
--- | Flags for opening and environment.
+-- | Flags for opening an environment.
 data MdbxEnvFlags
   = MdbxEnvDefaults
   | MdbxSyncDurable
@@ -110,6 +111,24 @@ type MdbxEnvMode = {# type mdbx_mode_t  #}
 
 -- | Creates an environment. Represents a database in the file system.
 {# fun unsafe mdbx_env_create {alloca- `MdbxEnv' peek*} -> `Int' #}
+
+
+{-|
+Sets geometry of an environment. Receives:
+
+- size_lower: Minimum size of the database in bytes.
+- size_now: Current size of the database in bytes.
+- size_upper: Maximum size of the database in bytes.
+- growth_step: Step growth size of the database in bytes. Must be greater than
+  zero to allow for growth.
+- shrink_threshold: Step shrink size of the database in bytes. Must be greater
+  than zero to allow for shrinkage and lower than growth_step to aovid shrinking
+  after growth.
+- pagesize: Page size of the database in bytes.
+
+All the parameters can receive -1 to keep the current value.
+-}
+{# fun unsafe mdbx_env_set_geometry {`MdbxEnv', `Int', `Int', `Int', `Int', `Int', `Int'} -> `Int' #}
 
 -- | Opens an environment. Receives name, flags and mode.
 {# fun unsafe mdbx_env_open {`MdbxEnv', `String', bitMask`[MdbxEnvFlags]', `MdbxEnvMode'} -> `Int' #}

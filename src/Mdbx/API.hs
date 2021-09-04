@@ -46,6 +46,7 @@ import Control.Monad.IO.Class (MonadIO, liftIO)
 import Control.Monad.Fail (MonadFail)
 
 import Mdbx.FFI
+import Mdbx.Types
 
 {-|
 Compares two keys and returns -1, 0 or 1 if key1 is lower, equal or greater than
@@ -64,13 +65,18 @@ keyCmp txn dbi key1 key2 = liftIO $ mdbx_cmp txn dbi key1 key2
 envOpen
   :: (MonadIO m, MonadFail m)
   => String
+  -> MdbxEnvGeometry
   -> [MdbxEnvFlags]
   -> m MdbxEnv
-envOpen path flags = do
+envOpen path geom flags = do
   (retCreate, env) <- liftIO mdbx_env_create
   checkError () retCreate
+  retGeometry <- liftIO $ mdbx_env_set_geometry env sizeMin sizeNow sizeMax growth shrink pageSize
+  checkError () retGeometry
   retOpen <- liftIO $ mdbx_env_open env path flags 0o644
   checkError env retOpen
+  where
+    MdbxEnvGeometry sizeMin sizeNow sizeMax growth shrink pageSize = geom
 
 -- | Close an environment.
 envClose
