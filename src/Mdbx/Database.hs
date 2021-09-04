@@ -22,9 +22,9 @@ module Mdbx.Database (
   delItems
 ) where
 
-import Control.Monad (forM, forM_, void)
-import Control.Monad.Fail (MonadFail)
+import Control.Monad (forM, forM_, void, when)
 import Control.Monad.IO.Class (MonadIO, liftIO)
+import Control.Monad.Fail (MonadFail)
 import Data.Function (fix)
 import Data.Maybe (catMaybes, fromJust)
 
@@ -154,6 +154,33 @@ delItems env dbi keys = do
   forM_ keys $ \key ->
     liftIO $ toMdbxVal key $ \mkey ->
       itemDel txn dbi mkey Nothing
+  void $ txnCommit txn
+
+-- | Deletes the values whose keys lie between the provided range.
+delRange
+  :: (MonadIO m, MonadFail m, MdbxItem k)
+  => MdbxEnv       -- ^ The environment.
+  -> MdbxDbi       -- ^ The database.
+  -> k             -- ^ The start of the range (inclusive).
+  -> k             -- ^ The end of the range (inclusive).
+  -> m ()
+delRange env dbi start end = do
+  txn <- txnBegin env Nothing []
+  cursor <- cursorOpen txn dbi
+
+  liftIO $ toMdbxVal start $ \skey ->
+    liftIO $ toMdbxVal end $ \ekey -> do
+      pair1 <- cursorRange cursor skey
+      flip fix pair1 $ \loop pair -> do
+        isValid <- pairLEKey txn dbi ekey pair
+
+        when isValid $ do
+          let mkey = fst . fromJust $ pair
+          itemDel txn dbi mkey Nothing
+          newPair <- cursorNext cursor
+
+          loop newPair
+
   void $ txnCommit txn
 
 -- Helpers
