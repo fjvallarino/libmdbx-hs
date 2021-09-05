@@ -1,5 +1,5 @@
 name:                libmdbx
-version:             0.1.0.4
+version:             0.2.0.0
 github:              fjvallarino/libmdbx-hs
 license:             BSD3
 author:              Francisco Vallarino
@@ -29,6 +29,8 @@ dependencies:
   - bytestring >= 0.10 && < 0.12
   - data-default >= 0.5 && < 0.8
   - mtl >= 2.1 && < 2.3
+  - store >= 0.5 && < 0.8
+  - store-core >= 0.4 && < 0.5
   - text >= 1.2 && < 1.3
 
 library:
@@ -50,11 +52,9 @@ executables:
       - -with-rtsopts=-N
     dependencies:
       - libmdbx
-      - bytestring >= 0.10 && < 0.12
-      - store >= 0.5 && < 0.8
 
 tests:
-  libmdbx-hs-test:
+  libmdbx-test:
     main: Spec.hs
     source-dirs: test
     ghc-options:
@@ -62,4 +62,7 @@ tests:
       - -rtsopts
       - -with-rtsopts=-N
     dependencies:
+      - directory >= 1.3 && < 1.4
+      - hspec >= 2.4 && < 3.0
+      - HUnit >= 1.6 && < 1.7
       - libmdbx

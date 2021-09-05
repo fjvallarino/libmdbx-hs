@@ -24,9 +24,11 @@ bindings to libmdbx.
 module Mdbx (
   module Mdbx.API,
   module Mdbx.Database,
+  module Mdbx.Store,
   module Mdbx.Types
 ) where
 
 import Mdbx.API
 import Mdbx.Database
+import Mdbx.Store
 import Mdbx.Types

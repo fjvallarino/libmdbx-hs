@@ -5,7 +5,7 @@ cabal-version: 1.12
 -- see: https://github.com/sol/hpack
 
 name:           libmdbx
-version:        0.1.0.4
+version:        0.2.0.0
 synopsis:       Bindings for libmdbx, an embedded key/value store
 description:    Haskell bindings for [libmdbx](https://github.com/erthink/libmdbx).
                 .
@@ -35,6 +35,7 @@ library
       Mdbx.API
       Mdbx.Database
       Mdbx.FFI
+      Mdbx.Store
       Mdbx.Types
   other-modules:
       Paths_libmdbx
@@ -53,13 +54,14 @@ library
     , bytestring >=0.10 && <0.12
     , data-default >=0.5 && <0.8
     , mtl >=2.1 && <2.3
+    , store >=0.5 && <0.8
+    , store-core ==0.4.*
     , text ==1.2.*
   default-language: Haskell2010
 
 executable libmdbx-exe
   main-is: Main.hs
   other-modules:
-      Mdbx.Store
       Paths_libmdbx
   hs-source-dirs:
       app
@@ -71,22 +73,30 @@ executable libmdbx-exe
     , libmdbx
     , mtl >=2.1 && <2.3
     , store >=0.5 && <0.8
+    , store-core ==0.4.*
     , text ==1.2.*
   default-language: Haskell2010
 
-test-suite libmdbx-hs-test
+test-suite libmdbx-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
+      Mdbx.DatabaseSpec
+      TestUtil
       Paths_libmdbx
   hs-source-dirs:
       test
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      base >=4.12 && <5
+      HUnit ==1.6.*
+    , base >=4.12 && <5
     , bytestring >=0.10 && <0.12
     , data-default >=0.5 && <0.8
+    , directory ==1.3.*
+    , hspec >=2.4 && <3.0
     , libmdbx
     , mtl >=2.1 && <2.3
+    , store >=0.5 && <0.8
+    , store-core ==0.4.*
     , text ==1.2.*
   default-language: Haskell2010
