@@ -12,9 +12,11 @@ import Data.Int
 import Data.Store
 import Data.Text (Text)
 import GHC.Generics
+import Mdbx
 import Test.Hspec
 
-import Mdbx
+import qualified Data.ByteString as BS
+
 import TestUtil
 
 data TestKey = TestKey {
@@ -25,8 +27,62 @@ data TestKey = TestKey {
 
 deriving via (MdbxItemStore TestKey) instance MdbxItem TestKey
 
+data TestKey2 = TestKey2 {
+  key2Category :: NullText,
+  key2Group :: Int16,
+  key2Ts :: Int
+} deriving (Eq, Show, Generic, Store)
+
+deriving via (MdbxItemStore TestKey2) instance MdbxItem TestKey2
+
 spec :: Spec
-spec = around withDatabase $
+spec = do
+  nullByteStringSpec
+  nullText
+  storeSpec
+
+nullByteStringSpec :: Spec
+nullByteStringSpec = describe "NullByteString" $ do
+  it "should encode/decode NullByteString correctly" $ \env -> do
+    let nbs = NullByteString "Test ByteString"
+
+    decode (encode nbs) `shouldBe` Right nbs
+
+  it "should correctly encode a key containing NullByteString" $ \env -> do
+    let key1 = TestKey "Key 1" 100 1
+    let key2 = TestKey "Long key 2" 100 2
+    let key3 = TestKey "Longer key 3" 100 3
+
+    BS.length (encode key1) `shouldBe` 16
+    BS.length (encode key2) `shouldBe` 21
+    BS.length (encode key3) `shouldBe` 23
+
+    decode (encode key1) `shouldBe` Right key1
+    decode (encode key2) `shouldBe` Right key2
+    decode (encode key3) `shouldBe` Right key3
+
+nullText :: Spec
+nullText = describe "NullText" $ do
+  it "should encode/decode NullText correctly" $ \env -> do
+    let nbs = NullText "Test Text - Русский"
+
+    decode (encode nbs) `shouldBe` Right nbs
+
+  it "should correctly encode a key containing NullText" $ \env -> do
+    let key1 = TestKey2 "Key 1" 100 1
+    let key2 = TestKey2 "Long key 2" 100 2
+    let key3 = TestKey2 "Longer key 3 - Русский" 100 3
+
+    BS.length (encode key1) `shouldBe` 16
+    BS.length (encode key2) `shouldBe` 21
+    BS.length (encode key3) `shouldBe` 40
+
+    decode (encode key1) `shouldBe` Right key1
+    decode (encode key2) `shouldBe` Right key2
+    decode (encode key3) `shouldBe` Right key3
+
+storeSpec :: Spec
+storeSpec = around withDatabase $
   describe "Database" $ do
     it "should insert and retrieve text keys" $ \(env, db) -> do
       let key k = k :: Text
