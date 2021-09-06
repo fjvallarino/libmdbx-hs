@@ -6,12 +6,11 @@
 #
 ################################################################################
 #
-# Preprocessor macros (for MDBX_OPTIONS) of interest.
+# Use `make options` to list the available libmdbx build options.
 #
 # Note that the defaults should already be correct for most platforms;
 # you should not need to change any of these. Read their descriptions
 # in README and source code (see src/options.h) if you do.
-# There may be other macros of interest.
 #
 
 SHELL   := env bash
@@ -26,21 +25,23 @@ mandir  ?= $(prefix)/man
 # lib/bin suffix for multiarch/biarch, e.g. '.x86_64'
 suffix  ?=
 
+INSTALL ?= install
 CC      ?= gcc
 CFLAGS_EXTRA ?=
 LD      ?= ld
-MDBX_OPTIONS ?= -DNDEBUG=1
-CFLAGS  ?= -O2 -g -Wall -Werror -Wextra -Wpedantic -ffunction-sections -fPIC -fvisibility=hidden -std=gnu11 -pthread -Wno-error=attributes $(CFLAGS_EXTRA)
+MDBX_BUILD_OPTIONS ?=-DNDEBUG=1
+MDBX_BUILD_TIMESTAMP ?=$(shell date +%Y-%m-%dT%H:%M:%S%z)
+CFLAGS  ?= -std=gnu11 -O2 -g -Wall -Werror -Wextra -Wpedantic -ffunction-sections -fPIC -fvisibility=hidden -pthread -Wno-error=attributes $(CFLAGS_EXTRA)
 # -Wno-tautological-compare
 CXX     ?= g++
 # Choosing C++ standard with deferred simple variable expansion trick
 CXXSTD  ?= $(eval CXXSTD := $$(shell PROBE=$$$$([ -f mdbx.c++ ] && echo mdbx.c++ || echo src/mdbx.c++); for std in gnu++20 c++20 gnu++2a c++2a gnu++17 c++17 gnu++14 c++14 gnu+11 c++11; do $(CXX) -std=$$$${std} -c $$$${PROBE} -o /dev/null 2>/dev/null >/dev/null && echo "-std=$$$${std}" && exit; done))$(CXXSTD)
 CXXFLAGS = $(CXXSTD) $(filter-out -std=gnu11,$(CFLAGS))
 
-# HINT: Try append '--no-as-needed,-lrt' for ability to built with modern glibc, but then run with the old.
-LIBS    ?= $(shell uname | grep -qi SunOS && echo "-lkstat") $(shell uname | grep -qi -e Darwin -e OpenBSD || echo "-lrt") $(shell uname | grep -qi Windows && echo "-lntdll")
+# TIP: Try append '--no-as-needed,-lrt' for ability to built with modern glibc, but then use with the old.
+LIBS    ?= $(strip -lm $(shell uname | grep -qi SunOS && echo "-lkstat") $(shell uname | grep -qi -e Darwin -e OpenBSD || echo "-lrt") $(shell uname | grep -qi Windows && echo "-lntdll"))
 
-LDFLAGS ?= $(shell $(LD) --help 2>/dev/null | grep -q -- --gc-sections && echo '-Wl,--gc-sections,-z,relro,-O1')$(shell $(LD) --help 2>/dev/null | grep -q -- -dead_strip && echo '-Wl,-dead_strip')
+LDFLAGS ?= $(strip $(shell $(LD) --help 2>/dev/null | grep -q -- --gc-sections && echo '-Wl,--gc-sections,-z,relro,-O1')$(shell $(LD) --help 2>/dev/null | grep -q -- -dead_strip && echo '-Wl,-dead_strip'))
 EXE_LDFLAGS ?= -pthread
 
 ################################################################################
@@ -54,70 +55,180 @@ define uname2sosuffix
   esac
 endef
 SO_SUFFIX  := $(shell $(uname2sosuffix))
-
 HEADERS    := mdbx.h mdbx.h++
 LIBRARIES  := libmdbx.a libmdbx.$(SO_SUFFIX)
 TOOLS      := mdbx_stat mdbx_copy mdbx_dump mdbx_load mdbx_chk mdbx_drop
 MANPAGES   := mdbx_stat.1 mdbx_copy.1 mdbx_dump.1 mdbx_load.1 mdbx_chk.1 mdbx_drop.1
+TIP        := // TIP:
 
-.PHONY: mdbx all install clean
+.PHONY: all help options lib tools clean install uninstall check_buildflags_tag
+.PHONY: install-strip install-no-strip strip libmdbx mdbx show-options
 
-all: $(LIBRARIES) $(TOOLS)
+ifeq ("$(origin V)", "command line")
+  MDBX_BUILD_VERBOSE := $(V)
+endif
+ifndef MDBX_BUILD_VERBOSE
+  MDBX_BUILD_VERBOSE := 0
+endif
 
-mdbx: libmdbx.a libmdbx.$(SO_SUFFIX)
+ifeq ($(MDBX_BUILD_VERBOSE),1)
+  QUIET :=
+  HUSH :=
+  $(info $(TIP) Use `make V=0` for quiet.)
+else
+  QUIET := @
+  HUSH := >/dev/null
+  $(info $(TIP) Use `make V=1` for verbose.)
+endif
+
+all: show-options $(LIBRARIES) $(TOOLS)
+
+help:
+	@echo "  make all                 - build libraries and tools"
+	@echo "  make help                - print this help"
+	@echo "  make options             - list build options"
+	@echo "  make lib                 - build libraries"
+	@echo "  make tools               - built tools"
+	@echo "  make clean               "
+	@echo "  make install             "
+	@echo "  make uninstall           "
+	@echo ""
+	@echo "  make strip               - strip debug symbols from binaries"
+	@echo "  make install-no-strip    - install explicitly without strip"
+	@echo "  make install-strip       - install explicitly with strip"
+	@echo ""
+	@echo "  make bench               - run ioarena-benchmark"
+	@echo "  make bench-couple        - run ioarena-benchmark for mdbx and lmdb"
+	@echo "  make bench-triplet       - run ioarena-benchmark for mdbx, lmdb, sqlite3"
+	@echo "  make bench-quartet       - run ioarena-benchmark for mdbx, lmdb, rocksdb, wiredtiger"
+	@echo "  make bench-clean         - remove temp database(s) after benchmark"
+
+show-options:
+	@echo "  MDBX_BUILD_OPTIONS   = $(MDBX_BUILD_OPTIONS)"
+	@echo "  MDBX_BUILD_TIMESTAMP = $(MDBX_BUILD_TIMESTAMP)"
+	@echo '$(TIP) Use `make options` to listing available build options.'
+	@echo "  CC       =`which $(CC)` | `$(CC) --version | head -1`"
+	@echo "  CFLAGS   =$(CFLAGS)"
+	@echo "  CXXFLAGS =$(CXXFLAGS)"
+	@echo "  LDFLAGS  =$(LDFLAGS) $(LIBS) $(EXE_LDFLAGS)"
+	@echo '$(TIP) Use `make help` to listing available targets.'
+
+options:
+	@echo "  INSTALL      =$(INSTALL)"
+	@echo "  DESTDIR      =$(DESTDIR)"
+	@echo "  prefix       =$(prefix)"
+	@echo "  mandir       =$(mandir)"
+	@echo "  suffix       =$(suffix)"
+	@echo ""
+	@echo "  CC           =$(CC)"
+	@echo "  CFLAGS_EXTRA =$(CFLAGS_EXTRA)"
+	@echo "  CFLAGS       =$(CFLAGS)"
+	@echo "  CXX          =$(CXX)"
+	@echo "  CXXSTD       =$(CXXSTD)"
+	@echo "  CXXFLAGS     =$(CXXFLAGS)"
+	@echo ""
+	@echo "  LD           =$(LD)"
+	@echo "  LDFLAGS      =$(LDFLAGS)"
+	@echo "  EXE_LDFLAGS  =$(EXE_LDFLAGS)"
+	@echo "  LIBS         =$(LIBS)"
+	@echo ""
+	@echo "  MDBX_BUILD_OPTIONS   = $(MDBX_BUILD_OPTIONS)"
+	@echo "  MDBX_BUILD_TIMESTAMP = $(MDBX_BUILD_TIMESTAMP)"
+	@echo ""
+	@echo "## Assortment items for MDBX_BUILD_OPTIONS:"
+	@echo "##   Note that the defaults should already be correct for most platforms;"
+	@echo "##   you should not need to change any of these. Read their descriptions"
+	@echo "##   in README and source code (see mdbx.c) if you do."
+	@grep -h '#ifndef MDBX_' mdbx.c | grep -v BUILD | uniq | sed 's/#ifndef /  /'
+
+lib libmdbx mdbx: libmdbx.a libmdbx.$(SO_SUFFIX)
 
 tools: $(TOOLS)
 
 strip: all
-	strip libmdbx.$(SO_SUFFIX) $(TOOLS)
+	@echo '  STRIP libmdbx.$(SO_SUFFIX) $(TOOLS)'
+	$(TRACE )strip libmdbx.$(SO_SUFFIX) $(TOOLS)
 
 clean:
-	rm -rf $(TOOLS) mdbx_test @* *.[ao] *.[ls]o *.$(SO_SUFFIX) *.dSYM *~ tmp.db/* \
+	@echo '  REMOVE ...'
+	$(QUIET)rm -rf $(TOOLS) mdbx_test @* *.[ao] *.[ls]o *.$(SO_SUFFIX) *.dSYM *~ tmp.db/* \
 		*.gcov *.log *.err src/*.o test/*.o mdbx_example dist \
-		config.h src/config.h src/version.c *.tar*
+		config.h src/config.h src/version.c *.tar* buildflags.tag
+
+MDBX_BUILD_FLAGS =$(strip $(MDBX_BUILD_OPTIONS) $(CXXSTD) $(CFLAGS) $(LDFLAGS) $(LIBS))
+check_buildflags_tag:
+	$(QUIET)if [ "$(MDBX_BUILD_FLAGS)" != "$$(cat buildflags.tag 2>&1)" ]; then \
+		echo -n "  CLEAN for build with specified flags..." && \
+		$(MAKE) IOARENA=false CXXSTD= -s clean >/dev/null && echo " Ok" && \
+		echo '$(MDBX_BUILD_FLAGS)' > buildflags.tag; \
+	fi
+
+buildflags.tag: check_buildflags_tag
 
 libmdbx.a: mdbx-static.o mdbx++-static.o
-	$(AR) rs $@ $?
+	@echo '  AR $@'
+	$(QUIET)$(AR) rcs $@ $? $(HUSH)
 
 libmdbx.$(SO_SUFFIX): mdbx-dylib.o mdbx++-dylib.o
-	$(CXX) $(CXXFLAGS) $^ -pthread -shared $(LDFLAGS) $(LIBS) -o $@
+	@echo '  LD $@'
+	$(QUIET)$(CXX) $(CXXFLAGS) $^ -pthread -shared $(LDFLAGS) $(LIBS) -o $@
 
 
 ################################################################################
 # Amalgamated source code, i.e. distributed after `make dist`
 MAN_SRCDIR := man1/
 
-config.h: mdbx.c $(lastword $(MAKEFILE_LIST))
-	(echo '#define MDBX_BUILD_TIMESTAMP "$(shell date +%Y-%m-%dT%H:%M:%S%z)"' \
-	&& echo '#define MDBX_BUILD_FLAGS "$(CXXSTD) $(CFLAGS) $(LDFLAGS) $(LIBS)"' \
+config.h: buildflags.tag mdbx.c $(lastword $(MAKEFILE_LIST))
+	@echo '  MAKE $@'
+	$(QUIET)(echo '#define MDBX_BUILD_TIMESTAMP "$(MDBX_BUILD_TIMESTAMP)"' \
+	&& echo "#define MDBX_BUILD_FLAGS \"$$(cat buildflags.tag)\"" \
 	&& echo '#define MDBX_BUILD_COMPILER "$(shell (LC_ALL=C $(CC) --version || echo 'Please use GCC or CLANG compatible compiler') | head -1)"' \
 	&& echo '#define MDBX_BUILD_TARGET "$(shell set -o pipefail; (LC_ALL=C $(CC) -v 2>&1 | grep -i '^Target:' | cut -d ' ' -f 2- || (LC_ALL=C $(CC) --version | grep -qi e2k && echo E2K) || echo 'Please use GCC or CLANG compatible compiler') | head -1)"' \
-	) > $@
+	) >$@
 
 mdbx-dylib.o: config.h mdbx.c mdbx.h $(lastword $(MAKEFILE_LIST))
-	$(CC) $(CFLAGS) $(MDBX_OPTIONS) '-DMDBX_CONFIG_H="config.h"' -DLIBMDBX_EXPORTS=1 -c mdbx.c -o $@
+	@echo '  CC $@'
+	$(QUIET)$(CC) $(CFLAGS) $(MDBX_BUILD_OPTIONS) '-DMDBX_CONFIG_H="config.h"' -DLIBMDBX_EXPORTS=1 -c mdbx.c -o $@
 
 mdbx-static.o: config.h mdbx.c mdbx.h $(lastword $(MAKEFILE_LIST))
-	$(CC) $(CFLAGS) $(MDBX_OPTIONS) '-DMDBX_CONFIG_H="config.h"' -ULIBMDBX_EXPORTS -c mdbx.c -o $@
+	@echo '  CC $@'
+	$(QUIET)$(CC) $(CFLAGS) $(MDBX_BUILD_OPTIONS) '-DMDBX_CONFIG_H="config.h"' -ULIBMDBX_EXPORTS -c mdbx.c -o $@
 
 mdbx++-dylib.o: config.h mdbx.c++ mdbx.h mdbx.h++ $(lastword $(MAKEFILE_LIST))
-	$(CXX) $(CXXFLAGS) $(MDBX_OPTIONS) '-DMDBX_CONFIG_H="config.h"' -DLIBMDBX_EXPORTS=1 -c mdbx.c++ -o $@
+	@echo '  CC $@'
+	$(QUIET)$(CXX) $(CXXFLAGS) $(MDBX_BUILD_OPTIONS) '-DMDBX_CONFIG_H="config.h"' -DLIBMDBX_EXPORTS=1 -c mdbx.c++ -o $@
 
 mdbx++-static.o: config.h mdbx.c++ mdbx.h mdbx.h++ $(lastword $(MAKEFILE_LIST))
-	$(CXX) $(CXXFLAGS) $(MDBX_OPTIONS) '-DMDBX_CONFIG_H="config.h"' -ULIBMDBX_EXPORTS -c mdbx.c++ -o $@
+	@echo '  CC $@'
+	$(QUIET)$(CXX) $(CXXFLAGS) $(MDBX_BUILD_OPTIONS) '-DMDBX_CONFIG_H="config.h"' -ULIBMDBX_EXPORTS -c mdbx.c++ -o $@
 
 mdbx_%:	mdbx_%.c libmdbx.a
-	$(CC) $(CFLAGS) $(MDBX_OPTIONS) '-DMDBX_CONFIG_H="config.h"' $^ $(EXE_LDFLAGS) $(LIBS) -o $@
+	@echo '  CC+LD $@'
+	$(QUIET)$(CC) $(CFLAGS) $(MDBX_BUILD_OPTIONS) '-DMDBX_CONFIG_H="config.h"' $^ $(EXE_LDFLAGS) $(LIBS) -o $@
+
 
 install: $(LIBRARIES) $(TOOLS) $(HEADERS)
-	install -D -p -s -t $(DESTDIR)$(prefix)/bin$(suffix) $(TOOLS) && \
-	install -D -p -s -t $(DESTDIR)$(prefix)/lib$(suffix) $(filter-out libmdbx.a,$(LIBRARIES)) && \
-	install -D -p -t $(DESTDIR)$(prefix)/lib$(suffix) libmdbx.a && \
-	install -D -p -m 444 -t $(DESTDIR)$(prefix)/include $(HEADERS) && \
-	install -D -p -m 444 -t $(DESTDIR)$(mandir)/man1 $(addprefix $(MAN_SRCDIR), $(MANPAGES))
+	@echo '  INSTALLING...'
+	$(QUIET)mkdir -p $(DESTDIR)$(prefix)/bin$(suffix) && \
+		$(INSTALL) -p $(EXE_INSTALL_FLAGS) $(TOOLS) $(DESTDIR)$(prefix)/bin$(suffix)/ && \
+	mkdir -p $(DESTDIR)$(prefix)/lib$(suffix)/ && \
+		$(INSTALL) -p $(EXE_INSTALL_FLAGS) $(filter-out libmdbx.a,$(LIBRARIES)) $(DESTDIR)$(prefix)/lib$(suffix)/ && \
+	mkdir -p $(DESTDIR)$(prefix)/lib$(suffix)/ && \
+		$(INSTALL) -p libmdbx.a $(DESTDIR)$(prefix)/lib$(suffix)/ && \
+	mkdir -p $(DESTDIR)$(prefix)/include/ && \
+		$(INSTALL) -p -m 444 $(HEADERS) $(DESTDIR)$(prefix)/include/ && \
+	mkdir -p $(DESTDIR)$(mandir)/man1/ && \
+		$(INSTALL) -p -m 444 $(addprefix $(MAN_SRCDIR), $(MANPAGES)) $(DESTDIR)$(mandir)/man1/
+
+install-strip: EXE_INSTALL_FLAGS = -s
+install-strip: install
+
+install-no-strip: EXE_INSTALL_FLAGS =
+install-no-strip: install
 
 uninstall:
-	rm -f $(addprefix $(DESTDIR)$(prefix)/bin$(suffix)/,$(TOOLS)) \
+	@echo '  UNINSTALLING/REMOVE...'
+	$(QUIET)rm -f $(addprefix $(DESTDIR)$(prefix)/bin$(suffix)/,$(TOOLS)) \
 		$(addprefix $(DESTDIR)$(prefix)/lib$(suffix)/,$(LIBRARIES)) \
 		$(addprefix $(DESTDIR)$(prefix)/include/,$(HEADERS)) \
 		$(addprefix $(DESTDIR)$(mandir)/man1/,$(MANPAGES))
@@ -125,25 +236,36 @@ uninstall:
 ################################################################################
 # Benchmarking by ioarena
 
-IOARENA ?= $(shell \
+ifeq ($(origin IOARENA),undefined)
+IOARENA := $(shell \
   (test -x ../ioarena/@BUILD/src/ioarena && echo ../ioarena/@BUILD/src/ioarena) || \
   (test -x ../../@BUILD/src/ioarena && echo ../../@BUILD/src/ioarena) || \
-  (test -x ../../src/ioarena && echo ../../src/ioarena) || which ioarena)
+  (test -x ../../src/ioarena && echo ../../src/ioarena) || which ioarena 2>&- || \
+  (echo false && echo '$(TIP) Clone and build the https://github.com/pmwkaa/ioarena.git within a neighbouring directory for availability of benchmarking.' >&2))
+endif
 NN	?= 25000000
 BENCH_CRUD_MODE ?= nosync
 
-ifneq ($(wildcard $(IOARENA)),)
+bench-clean:
+	@echo '  REMOVE bench-*.txt _ioarena/*'
+	$(QUIET)rm -rf bench-*.txt _ioarena/*
 
-.PHONY: bench clean-bench re-bench
+re-bench: bench-clean bench
 
-clean-bench:
-	rm -rf bench-*.txt _ioarena/*
+ifeq ($(or $(IOARENA),false),false)
+bench bench-quartet bench-triplet bench-couple:
+	$(QUIET)echo 'The `ioarena` benchmark is required.' >&2 && \
+	echo 'Please clone and build the https://github.com/pmwkaa/ioarena.git within a neighbouring `ioarena` directory.' >&2 && \
+	false
 
-re-bench: clean-bench bench
+else
+
+.PHONY: bench bench-clean bench-couple re-bench bench-quartet bench-triplet
 
 define bench-rule
 bench-$(1)_$(2).txt: $(3) $(IOARENA) $(lastword $(MAKEFILE_LIST))
-	LD_LIBRARY_PATH="./:$$$${LD_LIBRARY_PATH}" \
+	@echo '  RUNNING ioarena for $1/$2...'
+	$(QUIET)LD_LIBRARY_PATH="./:$$$${LD_LIBRARY_PATH}" \
 		$(IOARENA) -D $(1) -B crud -m $(BENCH_CRUD_MODE) -n $(2) \
 		| tee $$@ | grep throughput && \
 	LD_LIBRARY_PATH="./:$$$${LD_LIBRARY_PATH}" \
@@ -166,17 +288,13 @@ $(eval $(call bench-rule,sqlite3,$(NN)))
 $(eval $(call bench-rule,ejdb,$(NN)))
 $(eval $(call bench-rule,vedisdb,$(NN)))
 $(eval $(call bench-rule,dummy,$(NN)))
-
-$(eval $(call bench-rule,debug,10))
-
 bench: bench-mdbx_$(NN).txt
-
-.PHONY: bench-debug
-
-bench-debug: bench-debug_10.txt
-
 bench-quartet: bench-mdbx_$(NN).txt bench-lmdb_$(NN).txt bench-rocksdb_$(NN).txt bench-wiredtiger_$(NN).txt
 bench-triplet: bench-mdbx_$(NN).txt bench-lmdb_$(NN).txt bench-sqlite3_$(NN).txt
 bench-couple: bench-mdbx_$(NN).txt bench-lmdb_$(NN).txt
+
+# $(eval $(call bench-rule,debug,10))
+# .PHONY: bench-debug
+# bench-debug: bench-debug_10.txt
 
 endif
