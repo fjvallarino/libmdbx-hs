@@ -48,8 +48,8 @@ import Mdbx.FFI
 
 {-|
 Geometry of the database. The most important parameter is the maximum size, that
-defaults to 1024Mb. All other values default to -1, that means _"use the current
-value"_.
+defaults to 1024Mb. All other values default to -1, meaning the current value
+will be kept.
 -}
 data MdbxEnvGeometry = MdbxEnvGeometry {
   -- | Minimum DB size in bytes.
@@ -112,8 +112,8 @@ deriving via (MdbxItemStore User) instance MdbxItem User
 Note: if you plan on using a custom type as the key, be careful if it contains
 'Text' or 'ByteString' instances, since these types have a length field which is
 serialized before the data. This causes issues when using libmdbx, since it
-depends on key ordering and the length field will make shorter instances _lower
-than_ longer ones, even if the content indicates the opposite. You can use the
+depends on key ordering and the length field will make shorter instances lower
+than longer ones, even if the content indicates the opposite. You can use the
 provided 'NullByteString' or 'NullText' types if your data type is an instance
 of 'Data.Store.Store'. Otherwise, it is simpler to use 'Text' or 'ByteString' as
 the key.
@@ -125,7 +125,7 @@ class MdbxItem i where
   expected type, and a crash can happen deserializing the wrong type.
   -}
   fromMdbxVal :: MdbxVal -> IO i
-  {-
+  {-|
   Converts a user data type to a block of memory.
   -}
   toMdbxVal :: i -> (MdbxVal -> IO b) -> IO b
@@ -152,7 +152,7 @@ data type representing a key.
 This is not possible with regular 'ByteString' and 'Text' instances since their
 'Data.Store.Store' instances are serialized with the size field first. Given
 that libmdbx compares keys as an unstructured sequence of bytes, this can cause
-issues since longer strings are considered _greater than_ shorter ones, even if
+issues since longer strings are considered greater than shorter ones, even if
 their content indicates otherwise.
 -}
 newtype NullByteString = NullByteString {
