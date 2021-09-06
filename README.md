@@ -17,12 +17,12 @@ _Historically, **libmdbx** is a deeply revised and extended descendant of the am
 
 ### Low level interface
 
-Using libmdbx low level interface involves the following steps:
+Using libmdbx's low level interface involves the following steps:
 
 - Opening an environment. This is the equivalent of a database.
 - Opening a database. This is the equivalent of a table.
 - Creating a transaction.
-- Performing CRUD operations/using a cursor.
+- Performing CRUD operations, or using a cursor.
 - Committing or aborting the transaction.
 
 You can check [Hackage](https://hackage.haskell.org/package/libmdbx-hs/Mdbx-API.html)
@@ -31,7 +31,7 @@ documentation for more details on internals.
 
 ### High level interface
 
-Alternatively you can use the higher level interface which, although it provides
+Alternatively you can use the high level interface which, although providing
 a more limited set of operations, takes care of transaction handling and makes
 the common use cases really simple.
 

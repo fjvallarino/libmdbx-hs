@@ -19,7 +19,8 @@ module Mdbx.Database (
   putItems,
   -- * Delete
   delItem,
-  delItems
+  delItems,
+  delRange
 ) where
 
 import Control.Monad (forM, forM_, void, when)

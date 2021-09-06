@@ -149,3 +149,17 @@ storeSpec = around withDatabase $
       getRange env db (keyC 1 1) (keyC 1 3) `shouldReturn` (["Value C 1 1", "Value C 1 2", "Value C 1 3"] :: [Text])
 
       getRange env db (keyA 2 3) (keyB 1 2) `shouldReturn` (["Value A 2 3", "Value B 1 1", "Value B 1 2"] :: [Text])
+
+    it "should remove a range of keys" $ \(env, db) -> do
+      let key ts = TestKey "Test" 1 ts
+
+      putItem env db (key 1) ("Value 1" :: Text)
+      putItem env db (key 2) ("Value 2" :: Text)
+      putItem env db (key 3) ("Value 3" :: Text)
+      putItem env db (key 4) ("Value 4" :: Text)
+      putItem env db (key 5) ("Value 5" :: Text)
+
+      getRange env db (key 1) (key 5) `shouldReturn` (["Value 1", "Value 2", "Value 3", "Value 4", "Value 5"] :: [Text])
+
+      delRange env db (key 2) (key 4)
+      getRange env db (key 1) (key 5) `shouldReturn` (["Value 1", "Value 5"] :: [Text])

@@ -46,12 +46,33 @@ import qualified Data.Text as T
 
 import Mdbx.FFI
 
+{-|
+Geometry of the database. The most important parameter is the maximum size, that
+defaults to 1024Mb. All other values default to -1, that means _"use the current
+value"_.
+-}
 data MdbxEnvGeometry = MdbxEnvGeometry {
+  -- | Minimum DB size in bytes.
   envSizeMin :: Int,
+  -- | Current DB size in bytes.
   envSizeNow :: Int,
+  -- | Maximum DB size in bytes.
   envSizeMax :: Int,
+  {-|
+  Step growth size of the database in bytes. Must be greater than zero to allow
+  for growth.
+  -}
   envGrowthStep :: Int,
+  {-|
+  Step shrink size of the database in bytes. Must be greater than zero to allow
+  for shrinkage and lower than envGrowthStep to avoid immediate shrinking after
+  growth.
+  -}
   envShrinkThreshold :: Int,
+  {-|
+  Page size of the database in bytes. In general it should not be changed after
+  the database was created.
+  -}
   envPageSize :: Int
 } deriving (Eq, Show)
 
@@ -69,44 +90,15 @@ instance Default MdbxEnvGeometry where
 Converts an instance to/from the representation needed by libmdbx. This type is
 used for both keys and values.
 
-Only the 'Text' instance is provided, since it is commonly used as the key when
-storing/retrieving a value.
+Only 'ByteString', 'Text' instances are provided, since they are commonly used
+as the key when storing/retrieving a value.
 
 For your own types, in general, you will want to use a serialization library
-such as <https://hackage.haskell.org/package/store store>,
-<https://hackage.haskell.org/package/cereal cereal>, etc, and apply the newtype
+such as <https://hackage.haskell.org/package/store store>, and apply the newtype
 deriving via trick.
 
-The <https://hackage.haskell.org/package/store/docs/Data-Store.html#t:Store Store>
-instance can be defined as:
-
-@
-newtype MdbxItemStore a = MdbxItemStore {
-  unwrapStore :: a
-}
-
-instance Store a => MdbxItem (MdbxItemStore a) where
-  fromMdbxVal item = MdbxItemStore <$> fromMdbxStore item
-  toMdbxVal item = withMdbxStore (unwrapStore item)
-
-fromMdbxStore :: Store v => MdbxVal -> IO v
-fromMdbxStore (MdbxVal size ptr) = do
-  bs <- unsafePackCStringLen (castPtr ptr, fromIntegral size)
-  decodeIO bs
-
-withMdbxStore :: Store v => v -> (MdbxVal -> IO a) -> IO a
-withMdbxStore val fn =
-  unsafeUseAsCStringLen bsV $ \(ptrV, sizeV) -> do
-    let mval = MdbxVal (fromIntegral sizeV) (castPtr ptrV)
-    fn mval
-  where
-    bsV = encode val
-@
-
-This example can be adapted to other serialization libraries. It is not provided
-as part of libmdbx-hs itself to avoid forcing dependencies.
-
-Then, to derive the instance for your own type:
+`Mdbx.Store.MdbxItemStore` is provided to simplify using `Data.Store.Store`
+instances as keys or values with libmdbx:
 
 @
 data User = User {
@@ -118,17 +110,19 @@ deriving via (MdbxItemStore User) instance MdbxItem User
 @
 
 Note: if you plan on using a custom type as the key, be careful if it contains
-'Text' or 'Data.ByteString.ByteString' instances, since these types have a
-length field which is, in general, before the data. This causes issues when
-using cursors, since they depend on key ordering and the length field will make
-shorter instances lower than longer ones, even if the content indicates the
-opposite. In general, it is simpler to use 'Text' or 'ByteString' as the key.
+'Text' or 'ByteString' instances, since these types have a length field which is
+serialized before the data. This causes issues when using libmdbx, since it
+depends on key ordering and the length field will make shorter instances _lower
+than_ longer ones, even if the content indicates the opposite. You can use the
+provided 'NullByteString' or 'NullText' types if your data type is an instance
+of 'Data.Store.Store'. Otherwise, it is simpler to use 'Text' or 'ByteString' as
+the key.
 -}
 class MdbxItem i where
   {-|
   Converts a block of memory provided by libmdbx to a user data type. There are
   no guarantees provided by the library that the block of memory matches the
-  expected type, and a crash can happen if not careful.
+  expected type, and a crash can happen deserializing the wrong type.
   -}
   fromMdbxVal :: MdbxVal -> IO i
   {-
@@ -150,6 +144,17 @@ instance MdbxItem ByteString where
   toMdbxVal val fn = useAsCStringLen val $ \(ptr, size) ->
     fn $ MdbxVal (fromIntegral size) (castPtr ptr)
 
+{-|
+Newtype wrapping a 'ByteString' that provides a 'Data.Store.Store' instance
+using NULL terminated C strings, which allows for using them as part of a custom
+data type representing a key.
+
+This is not possible with regular 'ByteString' and 'Text' instances since their
+'Data.Store.Store' instances are serialized with the size field first. Given
+that libmdbx compares keys as an unstructured sequence of bytes, this can cause
+issues since longer strings are considered _greater than_ shorter ones, even if
+their content indicates otherwise.
+-}
 newtype NullByteString = NullByteString {
   unNullByteString :: ShortByteString
 } deriving newtype (Eq, Ord)
@@ -160,6 +165,13 @@ instance Show NullByteString where
 instance IsString NullByteString where
   fromString = NullByteString . BSH.toShort . BC.pack
 
+{-|
+Newtype wrapping a 'Text' that provides a 'Data.Store.Store' instance using NULL
+terminated C strings, which allows for using them as part of a custom data type
+representing a key.
+
+Check 'NullByteString' for the rationale.
+-}
 newtype NullText = NullText {
   unNullText :: Text
 } deriving newtype (Eq, Ord)

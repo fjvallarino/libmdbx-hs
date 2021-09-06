@@ -1,3 +1,13 @@
+{-|
+Module      : Mdbx.Store
+Copyright   : (c) 2021 Francisco Vallarino
+License     : BSD-3-Clause (see the LICENSE file)
+Maintainer  : fjvallarino@gmail.com
+Stability   : experimental
+Portability : non-portable
+
+Instances and helpers to derive 'MdbxItem' instances from 'Store' instances.
+-}
 {-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE StandaloneDeriving #-}
 
@@ -22,6 +32,10 @@ import qualified Data.Text.Encoding as TE
 
 import Mdbx.Types
 
+{-|
+Helper type to derive MdbxItem instances for types implementing 'Store' vie the
+newtype deriving trick.
+-}
 newtype MdbxItemStore a = MdbxItemStore {
   unwrapStore :: a
 }
@@ -30,11 +44,13 @@ instance Store a => MdbxItem (MdbxItemStore a) where
   fromMdbxVal item = MdbxItemStore <$> fromMdbxStore item
   toMdbxVal item = withMdbxStore (unwrapStore item)
 
+-- | Deserializes a 'Store' instance from an 'MdbxVal'.
 fromMdbxStore :: Store v => MdbxVal -> IO v
 fromMdbxStore (MdbxVal size ptr) = do
   bs <- unsafePackCStringLen (castPtr ptr, fromIntegral size)
   decodeIO bs
 
+-- | Serializes a 'Store' instance to 'MdbxVal', and passes it to a callback.
 withMdbxStore :: Store v => v -> (MdbxVal -> IO a) -> IO a
 withMdbxStore val fn =
   unsafeUseAsCStringLen (encode val) $ \(ptrV, sizeV) -> do

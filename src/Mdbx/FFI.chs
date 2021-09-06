@@ -112,9 +112,8 @@ type MdbxEnvMode = {# type mdbx_mode_t  #}
 -- | Creates an environment. Represents a database in the file system.
 {# fun unsafe mdbx_env_create {alloca- `MdbxEnv' peek*} -> `Int' #}
 
-
-{-|
-Sets geometry of an environment. Receives:
+{--
+Haddock ignores these:
 
 - size_lower: Minimum size of the database in bytes.
 - size_now: Current size of the database in bytes.
@@ -122,11 +121,15 @@ Sets geometry of an environment. Receives:
 - growth_step: Step growth size of the database in bytes. Must be greater than
   zero to allow for growth.
 - shrink_threshold: Step shrink size of the database in bytes. Must be greater
-  than zero to allow for shrinkage and lower than growth_step to aovid shrinking
+  than zero to allow for shrinkage and lower than growth_step to avoid shrinking
   after growth.
 - pagesize: Page size of the database in bytes.
+--}
 
-All the parameters can receive -1 to keep the current value.
+{-|
+Sets geometry of an environment. All the parameters can receive -1 to keep the
+current value. Receives (expressed in bytes): size_lower, size_now, size_upper,
+growth_step, shrink_threshold, pagesize.
 -}
 {# fun unsafe mdbx_env_set_geometry {`MdbxEnv', `Int', `Int', `Int', `Int', `Int', `Int'} -> `Int' #}
 
