@@ -2,16 +2,20 @@
 
 * Add support for setting database geometry.
 * Add `delRange` to remove a range of keys.
-* Add `NullByteString` and `NullText` types. The `Store` instances of these
-  types are encoded as NULL terminated strings, which allows for using them in
-  custom key types with libmdbx. This is not possible with `ByteString` and
-  `Text`, since their `Store` instances are serialized with the size field
-  first. Given that libmdbx compares keys as an unstructured sequence of bytes,
-  this can cause issues since longer strings are considered _greater than_
-  shorter ones, even if their content indicates otherwise.
+* Add `NullByteString` and `NullText` types. The `Binary` and `Store` instances
+  for these types are encoded as NULL terminated strings, which allows for using
+  them in custom key types with libmdbx. This is not possible with `ByteString`
+  and `Text`, since their `Binary` and `Store` instances are serialized with the
+  size field first. Given that libmdbx compares keys as an unstructured sequence
+  of bytes, this can cause issues since longer strings are considered _greater
+  than_ shorter ones, even if their content indicates otherwise.
 * Since the library now provides `Store` instances for `NullByteString` and
   `NullText`, [Store](https://hackage.haskell.org/package/store) was made a
   dependency for the library itself and not just for the examples.
+* The same happens with [Binary](https://hackage.haskell.org/package/binary). It
+  is also marked as the recommended serialization library for keys since it
+  uses big endian for encoding, eliminating issues when comparing keys with
+  libmdbx's comparison function.
 * Update to latest version of libmdbx.
 * Add test cases.
 
