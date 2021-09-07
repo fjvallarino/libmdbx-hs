@@ -39,11 +39,23 @@ module Mdbx.API (
   cursorRange,
   cursorNext,
   cursorPrev,
-  cursorMove
+  cursorMove,
+
+  -- * Conversion for types used in keys
+  keyFromFloat,
+  keyFromDouble,
+  keyFromInt32,
+  keyFromInt64,
+  floatFromKey,
+  doubleFromKey,
+  int32FromKey,
+  int64FromKey
 ) where
 
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Control.Monad.Fail (MonadFail)
+import Data.Int
+import Data.Word
 
 import Mdbx.FFI
 import Mdbx.Types
@@ -273,6 +285,38 @@ cursorMove cur baseKey op = do
   if ret == fromEnum MdbxNotfound
     then return Nothing
     else checkError (Just (key, val)) ret
+
+-- | Converts a Float value to an unsigned Word that can be used by libmdbx's compare function.
+keyFromFloat :: Float -> Word32
+keyFromFloat = mdbx_key_from_float
+
+-- | Converts a Double value to an unsigned Word that can be used by libmdbx's compare function.
+keyFromDouble :: Double -> Word64
+keyFromDouble = mdbx_key_from_double
+
+-- | Converts a 32bits signed Int value to an unsigned Word that can be used by libmdbx's compare function.
+keyFromInt32 :: Int32 -> Word32
+keyFromInt32 = mdbx_key_from_int32
+
+-- | Converts a 64bits signed Int value to an unsigned Word that can be used by libmdbx's compare function.
+keyFromInt64 :: Int64 -> Word64
+keyFromInt64 = mdbx_key_from_int64
+
+-- | Converts an unsigned Word to a Float value.
+floatFromKey :: Word32 -> Float
+floatFromKey = mdbx_float_from_key
+
+-- | Converts an unsigned Word to a Double value.
+doubleFromKey :: Word64 -> Double
+doubleFromKey = mdbx_double_from_key
+
+-- | Converts an unsigned Word value to a 32bits signed Int.
+int32FromKey :: Word32 -> Int32
+int32FromKey = mdbx_int32_from_key
+
+-- | Converts an unsigned Word value to a 64bits signed Int.
+int64FromKey :: Word64 -> Int64
+int64FromKey = mdbx_int64_from_key
 
 -- Helpers
 checkError

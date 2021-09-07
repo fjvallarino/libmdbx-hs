@@ -84,6 +84,7 @@ test-suite libmdbx-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
+      Mdbx.ConversionSpec
       Mdbx.DatabaseSpec
       TestUtil
       Paths_libmdbx

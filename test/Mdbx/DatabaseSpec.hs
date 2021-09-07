@@ -6,12 +6,12 @@
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TypeApplications #-}
 
-module Mdbx.DatabaseSpec where
+module Mdbx.DatabaseSpec (spec) where
 
 import Data.Binary
 import Data.Default
-import Data.Int
 import Data.Text (Text)
+import Data.Word
 import GHC.Generics
 import Mdbx
 import Test.Hspec
@@ -23,16 +23,16 @@ import TestUtil
 
 data TestKey = TestKey {
   keyCategory :: NullByteString,
-  keyGroup :: Int16,
-  keyTs :: Int
+  keyGroup :: Word16,
+  keyTs :: Word64
 } deriving (Eq, Show, Generic, Binary)
 
 deriving via (MdbxItemBinary TestKey) instance MdbxItem TestKey
 
 data TestKey2 = TestKey2 {
   key2Category :: NullText,
-  key2Group :: Int16,
-  key2Ts :: Int
+  key2Group :: Word16,
+  key2Ts :: Word64
 } deriving (Eq, Show, Generic, Binary)
 
 deriving via (MdbxItemBinary TestKey2) instance MdbxItem TestKey2

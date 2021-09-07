@@ -128,7 +128,9 @@ functions will work as expected. Failing to do this may cause unexpected issues
 when retrieving data, in particular when using cursors.
 
 __Note 3:__ The behavior when using signed integers or floating point numbers as
-part of the key is undefined.
+part of the key is undefined. To be able to use these types in the key, you
+should store them as a Word of the appropriate size and convert them with the
+conversion functions included in `Module.API`.
 -}
 class MdbxItem i where
   {-|

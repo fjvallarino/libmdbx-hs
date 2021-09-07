@@ -11,6 +11,7 @@ Low level bindings to libmdbx functions.
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module Mdbx.FFI (
   -- * Environment
@@ -59,9 +60,21 @@ module Mdbx.FFI (
   mdbx_cmp,
 
   -- * Error
-  MdbxError(..)
+  MdbxError(..),
+
+  -- * Conversion for types used in keys
+  mdbx_key_from_float,
+  mdbx_key_from_double,
+  mdbx_key_from_int32,
+  mdbx_key_from_int64,
+
+  mdbx_float_from_key,
+  mdbx_double_from_key,
+  mdbx_int32_from_key,
+  mdbx_int64_from_key
 ) where
 
+import GHC.Float (castWord32ToFloat, castWord64ToDouble)
 import Foreign
 import Foreign.C
 
@@ -386,3 +399,40 @@ maybeTxn (Just val) fn = fn val
 withMaybe :: Storable a => Maybe a -> (Ptr a -> IO c) -> IO c
 withMaybe Nothing fn = fn nullPtr
 withMaybe (Just val) fn = with val fn
+
+-- Conversion for types used in keys
+
+-- | Converts a Float value to an unsigned Word that can be used by libmdbx's compare function.
+{# fun pure mdbx_key_from_float {`Float'} -> `Word32' #}
+-- | Converts a Double value to an unsigned Word that can be used by libmdbx's compare function.
+{# fun pure mdbx_key_from_double {`Double'} -> `Word64' #}
+-- | Converts a 32bits signed Int value to an unsigned Word that can be used by libmdbx's compare function.
+{# fun pure mdbx_key_from_int32 {`Int32'} -> `Word32' #}
+-- | Converts a 64bits signed Int value to an unsigned Word that can be used by libmdbx's compare function.
+{# fun pure mdbx_key_from_int64 {`Int64'} -> `Word64' #}
+
+-- These functions are re-implemented locally because they are not exported by libmdbx.
+
+-- | Converts an unsigned Word to a Float value.
+mdbx_float_from_key :: Word32 -> Float
+mdbx_float_from_key val = value where
+  intVal :: Int32 = fromIntegral val
+  value
+    | intVal < 0 = castWord32ToFloat $ val + 0x80000000
+    | otherwise = castWord32ToFloat $ 0xffffFFFF - val
+
+-- | Converts an unsigned Word to a Double value.
+mdbx_double_from_key :: Word64 -> Double
+mdbx_double_from_key val = value where
+  intVal :: Int64 = fromIntegral val
+  value
+    | intVal < 0 = castWord64ToDouble $ val + 0x8000000000000000
+    | otherwise = castWord64ToDouble $ 0xffffFFFFffffFFFF - val
+
+-- | Converts an unsigned Word value to a 32bits signed Int.
+mdbx_int32_from_key :: Word32 -> Int32
+mdbx_int32_from_key val = fromIntegral $ val - 0x80000000;
+
+-- | Converts an unsigned Word value to a 64bits signed Int.
+mdbx_int64_from_key :: Word64 -> Int64
+mdbx_int64_from_key val = fromIntegral $ val - 0x8000000000000000;
