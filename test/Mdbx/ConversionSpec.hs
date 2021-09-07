@@ -5,7 +5,7 @@ import Test.Hspec
 import Mdbx
 
 spec :: Spec
-spec = fdescribe "Number conversion" $ do
+spec = describe "Number conversion" $ do
   it "should convert an Int to Word32" $ do
     keyFromInt32 (-100) `shouldBe` 2147483548
     keyFromInt32      0 `shouldBe` 2147483648

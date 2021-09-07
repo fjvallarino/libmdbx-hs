@@ -4,6 +4,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE StrictData #-}
 {-# LANGUAGE TypeApplications #-}
 
 module Mdbx.DatabaseSpec (spec) where
@@ -157,6 +158,20 @@ storeSpec = around withDatabase $
       getRange env db (keyC 1 ts1) (keyC 1 ts3) `shouldReturn` (["Value C 1 1", "Value C 1 2", "Value C 1 3"] :: [Text])
 
       getRange env db (keyA 2 ts3) (keyB 1 ts2) `shouldReturn` (["Value A 2 3", "Value B 1 1", "Value B 1 2"] :: [Text])
+
+    it "should insert and retrieve a range of pairs" $ \(env, db) -> do
+      let key ts = TestKey "Test" 1 ts
+      let key1 = key 1
+      let key2 = key 2
+      let key3 = key 3
+
+      putItem env db key1 ("Value 1" :: Text)
+      putItem env db key2 ("Value 2" :: Text)
+      putItem env db key3 ("Value 3" :: Text)
+
+      getRangePairs env db key1 key2 `shouldReturn` ([(key1, "Value 1"), (key2, "Value 2")] :: [(TestKey, Text)])
+      getRangePairs env db key2 key3 `shouldReturn` ([(key2, "Value 2"), (key3, "Value 3")] :: [(TestKey, Text)])
+      getRangePairs env db key1 key3 `shouldReturn` ([(key1, "Value 1"), (key2, "Value 2"), (key3, "Value 3")] :: [(TestKey, Text)])
 
     it "should remove a range of keys" $ \(env, db) -> do
       let key ts = TestKey "Test" 1 ts

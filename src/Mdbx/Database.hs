@@ -8,11 +8,14 @@ Portability : non-portable
 
 High level API to create, update, delete and query an MDBX database.
 -}
+{-# LANGUAGE Strict #-}
+
 module Mdbx.Database (
   -- * Get
   getItem,
   getItems,
   getRange,
+  getRangePairs,
   -- * Save
   putItem,
   putItems,
@@ -91,10 +94,43 @@ getRange env dbi start end = do
             newPair <- cursorNext cursor
 
             loop (newPair, val : items)
-          else return items
+          else return (reverse items)
 
   void $ txnCommit txn
-  return $ reverse pairs
+  return pairs
+
+{-|
+Returns the list of key/value pairs whose keys lie between the provided range.
+-}
+getRangePairs
+  :: (MonadIO m, MonadFail m, MdbxItem k, MdbxItem v)
+  => MdbxEnv       -- ^ The environment.
+  -> MdbxDbi       -- ^ The database.
+  -> k             -- ^ The start of the range (inclusive).
+  -> k             -- ^ The end of the range (inclusive).
+  -> m [(k, v)]    -- ^ The matching pairs.
+getRangePairs env dbi start end = do
+  txn <- txnBegin env Nothing [MdbxTxnRdonly]
+  cursor <- cursorOpen txn dbi
+
+  pairs <- liftIO $ toMdbxVal start $ \skey ->
+    liftIO $ toMdbxVal end $ \ekey -> do
+      pair1 <- cursorRange cursor skey
+      flip fix (pair1, []) $ \loop (pair, items) -> do
+        isValid <- pairLEKey txn dbi ekey pair
+
+        if isValid
+          then do
+            key <- fromMdbxVal . fst . fromJust $ pair
+            val <- fromMdbxVal . snd . fromJust $ pair
+
+            newPair <- cursorNext cursor
+
+            loop (newPair, (key, val) : items)
+          else return (reverse items)
+
+  void $ txnCommit txn
+  return pairs
 
 -- | Saves the given key/value pair.
 putItem

@@ -88,7 +88,8 @@ instance Default MdbxEnvGeometry where
 
 {-|
 Converts an instance to/from the representation needed by libmdbx. This type is
-used for both keys and values.
+used for both keys and values. The fields on the type must be strict, otherwise
+unexpected crashes due to lazy IO delaying low level memory access may happen.
 
 Only 'ByteString', 'Text' instances are provided, since they are commonly used
 as the key when storing/retrieving a value.
@@ -104,8 +105,8 @@ helpers, creating custom types compatible with libmdbx is easy:
 
 @
 data User = User {
-  _username :: Text,
-  _password :: Text
+  _username :: !Text,
+  _password :: !Text
 } deriving (Eq, Show, Generic, Store)
 
 deriving via (MdbxItemBinary User) instance MdbxItem User

@@ -1,3 +1,4 @@
+{-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DerivingVia #-}
@@ -18,8 +19,8 @@ import Mdbx
 import Mdbx.Store
 
 data User = User {
-  _username :: Text,
-  _password :: Text
+  _username :: !Text,
+  _password :: !Text
 } deriving (Eq, Show, Generic, Store)
 
 deriving via (MdbxItemStore User) instance MdbxItem User
