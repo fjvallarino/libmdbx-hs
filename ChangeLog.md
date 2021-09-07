@@ -2,6 +2,7 @@
 
 * Add support for setting database geometry.
 * Add `delRange` to remove a range of keys.
+* Add `getRangePairs` to retrieve the keys alongside the values.
 * Add `NullByteString` and `NullText` types. The `Binary` and `Store` instances
   for these types are encoded as NULL terminated strings, which allows for using
   them in custom key types with libmdbx. This is not possible with `ByteString`
@@ -16,6 +17,7 @@
   is also marked as the recommended serialization library for keys since it
   uses big endian for encoding, eliminating issues when comparing keys with
   libmdbx's comparison function.
+* Make `Database` module Strict. Recommend making user types strict.
 * Update to latest version of libmdbx.
 * Add test cases.
 
