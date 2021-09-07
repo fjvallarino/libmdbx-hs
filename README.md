@@ -26,7 +26,7 @@ Using libmdbx's low level interface involves the following steps:
 - Committing or aborting the transaction.
 
 You can check [Hackage](https://hackage.haskell.org/package/libmdbx-hs/Mdbx-API.html)
-for the low level interface or [libmdbx](https://erthink.github.io/libmdbx)
+for the low level interface or [libmdbx's](https://erthink.github.io/libmdbx)
 documentation for more details on internals.
 
 ### High level interface
@@ -34,6 +34,34 @@ documentation for more details on internals.
 Alternatively you can use the high level interface which, although providing
 a more limited set of operations, takes care of transaction handling and makes
 the common use cases really simple.
+
+```haskell
+data User = User {
+  _username :: Text,
+  _password :: Text
+} deriving (Eq, Show, Generic, Store)
+
+deriving via (MdbxItemStore User) instance MdbxItem User
+
+openEnvDbi :: IO MdbxEnv
+openEnvDbi = envOpen "./test.db" def [MdbxNosubdir, MdbxCoalesce, MdbxLiforeclaim]
+
+userKey :: User -> Text
+userKey user = "user-" <> _username user
+
+main :: IO ()
+main = bracket openEnvDbi envClose $ \env -> do
+  db <- dbiOpen env Nothing []
+
+  putItem env db (userKey user1) user1
+  putItem env db (userKey user2) user2
+
+  getItem env db (userKey user2) >>= print @(Maybe User)
+  getRange env db (userKey user1) (userKey user2) >>= print @[User]
+  where
+    user1 = User "john" "secret"
+    user2 = User "mark" "password"
+```
 
 For the high level interface check [Hackage](https://hackage.haskell.org/package/libmdbx-hs/Mdbx-Database.html)
 or the sample application [here](app/Main.hs).

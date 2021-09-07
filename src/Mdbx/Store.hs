@@ -6,7 +6,7 @@ Maintainer  : fjvallarino@gmail.com
 Stability   : experimental
 Portability : non-portable
 
-Instances and helpers to derive 'MdbxItem' instances from 'Store' instances.
+Instances and helpers to derive 'MdbxItem' for 'Store' instances.
 -}
 {-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE StandaloneDeriving #-}
@@ -33,8 +33,8 @@ import qualified Data.Text.Encoding as TE
 import Mdbx.Types
 
 {-|
-Helper type to derive MdbxItem instances for types implementing 'Store' vie the
-newtype deriving trick.
+Helper type to derive 'MdbxItem' instances for types implementing 'Store' using
+the newtype deriving trick.
 -}
 newtype MdbxItemStore a = MdbxItemStore {
   unwrapStore :: a
@@ -73,8 +73,6 @@ instance Store NullByteString where
     let nbs = NullByteString (BSH.toShort bs)
     return $ PeekResult newPtr nbs
 
-deriving via (MdbxItemStore NullByteString) instance MdbxItem NullByteString
-
 instance Store NullText where
   size = VarSize
     $ \t -> BS.length (TE.encodeUtf8 $ unNullText t) + 1
@@ -90,5 +88,3 @@ instance Store NullText where
     let newPtr = ptr `plusPtr` (BS.length bs + 1)
     let nt = NullText (TE.decodeUtf8 bs)
     return $ PeekResult newPtr nt
-
-deriving via (MdbxItemStore NullText) instance MdbxItem NullText

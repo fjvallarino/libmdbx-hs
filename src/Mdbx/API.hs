@@ -12,23 +12,23 @@ based error handling.
 {-# LANGUAGE FlexibleContexts #-}
 
 module Mdbx.API (
-  -- Keys
+  -- * Keys
   keyCmp,
-  -- Env
+  -- * Environment
   envOpen,
   envClose,
-  -- Txn
+  -- * Transaction
   txnBegin,
   txnCommit,
   txnAbort,
-  -- Dbi
+  -- * Database
   dbiOpen,
   dbiClose,
-  -- Val
+  -- * Data manipulation
   itemPut,
   itemGet,
   itemDel,
-  -- Cursor
+  -- * Cursors
   cursorOpen,
   cursorClose,
   cursorPut,

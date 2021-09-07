@@ -12,7 +12,6 @@ module Mdbx.Database (
   -- * Get
   getItem,
   getItems,
-  -- * Query
   getRange,
   -- * Save
   putItem,

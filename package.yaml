@@ -26,6 +26,7 @@ description: |
 
 dependencies:
   - base >= 4.12 && < 5
+  - binary >= 0.8 && < 0.11
   - bytestring >= 0.10 && < 0.12
   - data-default >= 0.5 && < 0.8
   - mtl >= 2.1 && < 2.3

@@ -10,26 +10,27 @@ Bindings for libmdbx, a high-performance, in-process, key-value store.
 
 This is the module most applications should import.
 
-For the high level API, check the "Mdbx.Database" module.
+See the "Mdbx.Types" module for details on how to make your data types work with
+libmdbx. It is recommended to use a serialization library such as
+<https://hackage.haskell.org/package/binary binary> to simplify this task.
 
-For the low level API, or if you need finer grained control/using cursors, check
-"Mdbx.API".
+For the high level API, see the "Mdbx.Database" module.
 
-You will also want to check "Mdbx.Types" to be able to store your data types. In
-general, you will also want to use a serialization library such as
-<https://hackage.haskell.org/package/store store>.
+For the low level API, or if you want to use cursors, see "Mdbx.API".
 
 "Mdbx.FFI" (not exported by this module) provides direct, low level, bindings to
 libmdbx.
 -}
 module Mdbx (
   module Mdbx.API,
+  module Mdbx.Binary,
   module Mdbx.Database,
   module Mdbx.Store,
   module Mdbx.Types
 ) where
 
 import Mdbx.API
+import Mdbx.Binary
 import Mdbx.Database
 import Mdbx.Store
 import Mdbx.Types
