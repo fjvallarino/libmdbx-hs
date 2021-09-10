@@ -25,6 +25,7 @@ module Mdbx.Database (
   delRange
 ) where
 
+import Control.Exception (SomeException(..), bracket, catch, throw)
 import Control.Monad (forM, forM_, void, when)
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Control.Monad.Fail (MonadFail)
@@ -41,14 +42,10 @@ getItem
   -> MdbxDbi       -- ^ The database.
   -> k             -- ^ The key to lookup.
   -> m (Maybe v)   -- ^ The matching value, if any.
-getItem env dbi key = do
-  txn <- txnBegin env Nothing [MdbxTxnRdonly]
-
-  resp <- liftIO $ toMdbxVal key $ \mkey -> do
+getItem env dbi key = liftIO . doInReadTxn env $ \txn -> do
+  toMdbxVal key $ \mkey -> do
     mval <- itemGet txn dbi mkey
     mapM fromMdbxVal mval
-  void $ txnCommit txn
-  return resp
 
 {-|
 Returns the values associated to a list of keys. Returned length may not match
@@ -60,14 +57,12 @@ getItems
   -> MdbxDbi       -- ^ The database.
   -> [k]           -- ^ The keys to lookup.
   -> m [v]         -- ^ The matching values. Length may not match that of keys.
-getItems env dbi keys = do
-  txn <- txnBegin env Nothing [MdbxTxnRdonly]
-
+getItems env dbi keys = liftIO . doInReadTxn env $ \txn -> do
   resp <- forM keys $ \key ->
-    liftIO $ toMdbxVal key $ \mkey -> do
+    toMdbxVal key $ \mkey -> do
       mval <- itemGet txn dbi mkey
       mapM fromMdbxVal mval
-  void $ txnCommit txn
+
   return $ catMaybes resp
 
 -- | Returns the list of values whose keys lie between the provided range.
@@ -78,12 +73,11 @@ getRange
   -> k             -- ^ The start of the range (inclusive).
   -> k             -- ^ The end of the range (inclusive).
   -> m [v]         -- ^ The matching values.
-getRange env dbi start end = do
-  txn <- txnBegin env Nothing [MdbxTxnRdonly]
+getRange env dbi start end = liftIO . doInReadTxn env $ \txn -> do
   cursor <- cursorOpen txn dbi
 
-  pairs <- liftIO $ toMdbxVal start $ \skey ->
-    liftIO $ toMdbxVal end $ \ekey -> do
+  toMdbxVal start $ \skey ->
+    toMdbxVal end $ \ekey -> do
       pair1 <- cursorRange cursor skey
       flip fix (pair1, []) $ \loop (pair, items) -> do
         isValid <- pairLEKey txn dbi ekey pair
@@ -96,9 +90,6 @@ getRange env dbi start end = do
             loop (newPair, val : items)
           else return (reverse items)
 
-  void $ txnCommit txn
-  return pairs
-
 {-|
 Returns the list of key/value pairs whose keys lie between the provided range.
 -}
@@ -109,12 +100,11 @@ getRangePairs
   -> k             -- ^ The start of the range (inclusive).
   -> k             -- ^ The end of the range (inclusive).
   -> m [(k, v)]    -- ^ The matching pairs.
-getRangePairs env dbi start end = do
-  txn <- txnBegin env Nothing [MdbxTxnRdonly]
+getRangePairs env dbi start end = liftIO . doInReadTxn env $ \txn -> do
   cursor <- cursorOpen txn dbi
 
-  pairs <- liftIO $ toMdbxVal start $ \skey ->
-    liftIO $ toMdbxVal end $ \ekey -> do
+  toMdbxVal start $ \skey ->
+    toMdbxVal end $ \ekey -> do
       pair1 <- cursorRange cursor skey
       flip fix (pair1, []) $ \loop (pair, items) -> do
         isValid <- pairLEKey txn dbi ekey pair
@@ -129,9 +119,6 @@ getRangePairs env dbi start end = do
             loop (newPair, (key, val) : items)
           else return (reverse items)
 
-  void $ txnCommit txn
-  return pairs
-
 -- | Saves the given key/value pair.
 putItem
   :: (MonadIO m, MonadFail m, MdbxItem k, MdbxItem v)
@@ -140,12 +127,11 @@ putItem
   -> k             -- ^ The key.
   -> v             -- ^ The value.
   -> m ()
-putItem env dbi key item = do
-  txn <- txnBegin env Nothing []
-  liftIO $ toMdbxVal key $ \mkey ->
-    liftIO $ toMdbxVal item $ \mitem ->
-      itemPut txn dbi mkey mitem []
-  void $ txnCommit txn
+putItem env dbi key item =
+  liftIO . doInWriteTxn env $ \txn ->
+    toMdbxVal key $ \mkey ->
+      toMdbxVal item $ \mitem ->
+        itemPut txn dbi mkey mitem []
 
 -- | Saves the given key/value pairs. Runs in a single transaction.
 putItems
@@ -154,13 +140,12 @@ putItems
   -> MdbxDbi       -- ^ The database.
   -> [(k, v)]      -- ^ The list of key/value pairs.
   -> m ()
-putItems env dbi items = do
-  txn <- txnBegin env Nothing []
-  forM_ items $ \(key, item) ->
-    liftIO $ toMdbxVal key $ \mkey ->
-      liftIO $ toMdbxVal item $ \mitem ->
-        itemPut txn dbi mkey mitem []
-  void $ txnCommit txn
+putItems env dbi items =
+  liftIO . doInWriteTxn env $ \txn ->
+    forM_ items $ \(key, item) ->
+      toMdbxVal key $ \mkey ->
+        toMdbxVal item $ \mitem ->
+          itemPut txn dbi mkey mitem []
 
 -- | Deletes the item associated with the given key, if any.
 delItem
@@ -169,11 +154,10 @@ delItem
   -> MdbxDbi       -- ^ The database.
   -> k             -- ^ The key to delete.
   -> m ()
-delItem env dbi key = do
-  txn <- txnBegin env Nothing []
-  liftIO $ toMdbxVal key $ \mkey ->
-    itemDel txn dbi mkey Nothing
-  void $ txnCommit txn
+delItem env dbi key =
+  liftIO . doInWriteTxn env $ \txn ->
+    liftIO $ toMdbxVal key $ \mkey ->
+      itemDel txn dbi mkey Nothing
 
 {-|
 Deletes the items associated with the given keys, if any. Runs in a single
@@ -185,12 +169,11 @@ delItems
   -> MdbxDbi       -- ^ The database.
   -> [k]           -- ^ The keys to delete.
   -> m ()
-delItems env dbi keys = do
-  txn <- txnBegin env Nothing []
-  forM_ keys $ \key ->
-    liftIO $ toMdbxVal key $ \mkey ->
-      itemDel txn dbi mkey Nothing
-  void $ txnCommit txn
+delItems env dbi keys =
+  liftIO . doInWriteTxn env $ \txn ->
+    forM_ keys $ \key ->
+      toMdbxVal key $ \mkey ->
+        itemDel txn dbi mkey Nothing
 
 -- | Deletes the values whose keys lie between the provided range.
 delRange
@@ -200,24 +183,22 @@ delRange
   -> k             -- ^ The start of the range (inclusive).
   -> k             -- ^ The end of the range (inclusive).
   -> m ()
-delRange env dbi start end = do
-  txn <- txnBegin env Nothing []
-  cursor <- cursorOpen txn dbi
+delRange env dbi start end =
+  liftIO . doInWriteTxn env $ \txn -> do
+    cursor <- cursorOpen txn dbi
 
-  liftIO $ toMdbxVal start $ \skey ->
-    liftIO $ toMdbxVal end $ \ekey -> do
-      pair1 <- cursorRange cursor skey
-      flip fix pair1 $ \loop pair -> do
-        isValid <- pairLEKey txn dbi ekey pair
+    toMdbxVal start $ \skey ->
+      toMdbxVal end $ \ekey -> do
+        pair1 <- cursorRange cursor skey
+        flip fix pair1 $ \loop pair -> do
+          isValid <- pairLEKey txn dbi ekey pair
 
-        when isValid $ do
-          let mkey = fst . fromJust $ pair
-          itemDel txn dbi mkey Nothing
-          newPair <- cursorNext cursor
+          when isValid $ do
+            let mkey = fst . fromJust $ pair
+            itemDel txn dbi mkey Nothing
+            newPair <- cursorNext cursor
 
-          loop newPair
-
-  void $ txnCommit txn
+            loop newPair
 
 -- Helpers
 
@@ -231,3 +212,33 @@ pairLEKey
   -> m Bool        -- ^ True if the key/value is lower or equal than the key.
 pairLEKey txn dbi end Nothing = return False
 pairLEKey txn dbi end (Just (key, _)) = (<= 0) <$> keyCmp txn dbi key end
+
+doInReadTxn
+  :: MdbxEnv
+  -> (MdbxTxn -> IO a)
+  -> IO a
+doInReadTxn env action = doInTxn env Nothing [MdbxTxnRdonly] action
+
+doInWriteTxn
+  :: MdbxEnv
+  -> (MdbxTxn -> IO a)
+  -> IO a
+doInWriteTxn env action = doInTxn env Nothing [] action
+
+doInTxn
+  :: MdbxEnv
+  -> Maybe MdbxTxn
+  -> [MdbxTxnFlags]
+  -> (MdbxTxn -> IO a)
+  -> IO a
+doInTxn env parentTxn flags action = do
+  txn <- txnBegin env parentTxn flags
+  handleAny (handleEx txn) $ do
+    res <- action txn
+    txnCommit txn
+    return res
+  where
+    handleEx txn e = txnAbort txn >> throw e
+
+handleAny :: (SomeException -> IO a) -> IO a -> IO a
+handleAny action handler = catch handler action

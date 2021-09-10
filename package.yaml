@@ -1,5 +1,5 @@
 name:                libmdbx
-version:             0.2.0.0
+version:             0.2.0.1
 github:              fjvallarino/libmdbx-hs
 license:             BSD3
 author:              Francisco Vallarino

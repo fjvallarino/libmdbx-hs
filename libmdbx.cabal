@@ -5,7 +5,7 @@ cabal-version: 1.12
 -- see: https://github.com/sol/hpack
 
 name:           libmdbx
-version:        0.2.0.0
+version:        0.2.0.1
 synopsis:       Bindings for libmdbx, an embedded key/value store
 description:    Haskell bindings for [libmdbx](https://github.com/erthink/libmdbx).
                 .
