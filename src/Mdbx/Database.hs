@@ -16,6 +16,7 @@ module Mdbx.Database (
   getItems,
   getRange,
   getRangePairs,
+  getBounds,
   -- * Save
   putItem,
   putItems,
@@ -25,12 +26,14 @@ module Mdbx.Database (
   delRange
 ) where
 
+import Control.Applicative ((<|>))
 import Control.Exception (SomeException(..), bracket, catch, throw)
 import Control.Monad (forM, forM_, void, when)
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Control.Monad.Fail (MonadFail)
+import Control.Monad.Trans.Maybe (MaybeT(..), runMaybeT)
 import Data.Function (fix)
-import Data.Maybe (catMaybes, fromJust)
+import Data.Maybe (catMaybes, fromJust, isJust)
 
 import Mdbx.API
 import Mdbx.Types
@@ -118,6 +121,40 @@ getRangePairs env dbi start end = liftIO . doInReadTxn env $ \txn -> do
 
             loop (newPair, (key, val) : items)
           else return (reverse items)
+
+{-|
+Returns the minimum and maximum keys, and their respective values, between the
+provided key range.
+
+Both start and end keys are inclusive, thus the same key/value pairs will be
+returned if they exist. Otherwise, the next/previous valid key/value pairs will
+be returned respectively.
+-}
+getBounds
+  :: (MonadIO m, MonadFail m, MdbxItem k, MdbxItem v)
+  => MdbxEnv                       -- ^ The environment.
+  -> MdbxDbi                       -- ^ The database.
+  -> k                             -- ^ The start of the range (inclusive).
+  -> k                             -- ^ The end of the range (inclusive).
+  -> m (Maybe ((k, v), (k, v)))    -- ^ The bounding pairs, if any.
+getBounds env dbi start end = liftIO . doInReadTxn env $ \txn -> do
+  cursor <- cursorOpen txn dbi
+
+  toMdbxVal start $ \skey ->
+    toMdbxVal end $ \ekey -> do
+      pairMem1 <- cursorRange cursor skey
+      isValid1 <- pairLEKey txn dbi ekey pairMem1
+      pair1 <- fetchIfValid isValid1 pairMem1
+
+      pairMem2 <- runMaybeT $ MaybeT (cursorAt cursor ekey) <|> MaybeT (cursorPrev cursor)
+      isValid2 <- pairGEKey txn dbi skey pairMem2
+      pair2 <- fetchIfValid isValid2 pairMem2
+
+      return $ (,) <$> pair1 <*> pair2
+  where
+    fromMdbxPairs (mkey, mval) = (,) <$> fromMdbxVal mkey <*> fromMdbxVal mval
+    fetchIfValid True pairMem = mapM fromMdbxPairs pairMem
+    fetchIfValid _ _ = return Nothing
 
 -- | Saves the given key/value pair.
 putItem
@@ -213,18 +250,39 @@ pairLEKey
 pairLEKey txn dbi end Nothing = return False
 pairLEKey txn dbi end (Just (key, _)) = (<= 0) <$> keyCmp txn dbi key end
 
+-- | Checks if the key of the key/value pair is greater than the provided key.
+pairGEKey
+  :: (MonadIO m, MonadFail m)
+  => MdbxTxn       -- ^ The active transaction.
+  -> MdbxDbi       -- ^ The database.
+  -> MdbxVal       -- ^ The reference key.
+  -> Maybe (MdbxVal, MdbxVal)  -- ^ The key/value pair to check
+  -> m Bool        -- ^ True if the key/value is greater or equal than the key.
+pairGEKey txn dbi end Nothing = return False
+pairGEKey txn dbi end (Just (key, _)) = (>= 0) <$> keyCmp txn dbi key end
+
+-- | Runs the given action in a read only transaction.
 doInReadTxn
   :: MdbxEnv
   -> (MdbxTxn -> IO a)
   -> IO a
 doInReadTxn env action = doInTxn env Nothing [MdbxTxnRdonly] action
 
+{-|
+Runs the given action in a read/write transaction, that will be aborted if an
+exception is thrown and committed otherwise.
+-}
 doInWriteTxn
   :: MdbxEnv
   -> (MdbxTxn -> IO a)
   -> IO a
 doInWriteTxn env action = doInTxn env Nothing [] action
 
+{-|
+Runs the given action in a transaction with the specified flags and, optionally,
+parent transaction. The transaction will be aborted if an exception is thrown,
+committed otherwise.
+-}
 doInTxn
   :: MdbxEnv
   -> Maybe MdbxTxn

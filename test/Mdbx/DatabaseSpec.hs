@@ -173,6 +173,32 @@ storeSpec = around withDatabase $
       getRangePairs env db key2 key3 `shouldReturn` ([(key2, "Value 2"), (key3, "Value 3")] :: [(TestKey, Text)])
       getRangePairs env db key1 key3 `shouldReturn` ([(key1, "Value 1"), (key2, "Value 2"), (key3, "Value 3")] :: [(TestKey, Text)])
 
+    it "should insert and retrieve the bounds of pairs of keys" $ \(env, db) -> do
+      let key ts = TestKey "Test" 1 ts
+      let key0 = key 0
+      let key1 = key 1
+      let key2 = key 2
+      let key3 = key 3
+      let key4 = key 4
+      let key5 = key 5
+      let key6 = key 6
+      let key8 = key 8
+
+      putItem env db key1 ("Value 1" :: Text)
+      putItem env db key2 ("Value 2" :: Text)
+      putItem env db key3 ("Value 3" :: Text)
+      putItem env db key4 ("Value 4" :: Text)
+      putItem env db key5 ("Value 5" :: Text)
+      putItem env db key8 ("Value 8" :: Text)
+
+      getBounds env db key0 key6 `shouldReturn` Just ((key1, "Value 1" :: Text), (key5, "Value 5" :: Text))
+      getBounds env db key1 key6 `shouldReturn` Just ((key1, "Value 1" :: Text), (key5, "Value 5" :: Text))
+      getBounds env db key1 key5 `shouldReturn` Just ((key1, "Value 1" :: Text), (key5, "Value 5" :: Text))
+      getBounds env db key3 key4 `shouldReturn` Just ((key3, "Value 3" :: Text), (key4, "Value 4" :: Text))
+      getBounds env db key3 key3 `shouldReturn` Just ((key3, "Value 3" :: Text), (key3, "Value 3" :: Text))
+      getBounds env db key0 key0 `shouldReturn` Nothing @((TestKey, Text), (TestKey, Text))
+      getBounds env db key6 key6 `shouldReturn` Nothing @((TestKey, Text), (TestKey, Text))
+
     it "should remove a range of keys" $ \(env, db) -> do
       let key ts = TestKey "Test" 1 ts
 
