@@ -1,3 +1,10 @@
+### 0.2.1.0
+
+* Add proper transaction handling for Database module (commit on success but
+  also abort on exception).
+* Add `getBounds` function to retrieve minimum and maximum key/pairs on a given
+  range of keys.
+
 ### 0.2.0.0
 
 * Add support for setting database geometry.

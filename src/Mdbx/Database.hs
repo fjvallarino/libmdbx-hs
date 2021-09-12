@@ -127,8 +127,8 @@ Returns the minimum and maximum keys, and their respective values, between the
 provided key range.
 
 Both start and end keys are inclusive, thus the same key/value pairs will be
-returned if they exist. Otherwise, the next/previous valid key/value pairs will
-be returned respectively.
+returned if they exist. Otherwise, the next\/previous valid key\/value pairs
+will be returned respectively.
 -}
 getBounds
   :: (MonadIO m, MonadFail m, MdbxItem k, MdbxItem v)
@@ -239,7 +239,9 @@ delRange env dbi start end =
 
 -- Helpers
 
--- | Checks if the key of the key/value pair is lower than the provided key.
+{-|
+Checks if the key of the key/value pair is lower or equal than the provided key.
+-}
 pairLEKey
   :: (MonadIO m, MonadFail m)
   => MdbxTxn       -- ^ The active transaction.
@@ -250,7 +252,10 @@ pairLEKey
 pairLEKey txn dbi end Nothing = return False
 pairLEKey txn dbi end (Just (key, _)) = (<= 0) <$> keyCmp txn dbi key end
 
--- | Checks if the key of the key/value pair is greater than the provided key.
+{-|
+Checks if the key of the key/value pair is greater or equal than the provided
+key.
+-}
 pairGEKey
   :: (MonadIO m, MonadFail m)
   => MdbxTxn       -- ^ The active transaction.
