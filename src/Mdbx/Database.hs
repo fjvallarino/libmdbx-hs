@@ -77,21 +77,20 @@ getRange
   -> k             -- ^ The end of the range (inclusive).
   -> m [v]         -- ^ The matching values.
 getRange env dbi start end = liftIO . doInReadTxn env $ \txn -> do
-  cursor <- cursorOpen txn dbi
+  doInCursor txn dbi $ \cursor ->
+    toMdbxVal start $ \skey ->
+      toMdbxVal end $ \ekey -> do
+        pair1 <- cursorRange cursor skey
+        flip fix (pair1, []) $ \loop (pair, items) -> do
+          isValid <- pairLEKey txn dbi ekey pair
 
-  toMdbxVal start $ \skey ->
-    toMdbxVal end $ \ekey -> do
-      pair1 <- cursorRange cursor skey
-      flip fix (pair1, []) $ \loop (pair, items) -> do
-        isValid <- pairLEKey txn dbi ekey pair
+          if isValid
+            then do
+              val <- fromMdbxVal . snd . fromJust $ pair
+              newPair <- cursorNext cursor
 
-        if isValid
-          then do
-            val <- fromMdbxVal . snd . fromJust $ pair
-            newPair <- cursorNext cursor
-
-            loop (newPair, val : items)
-          else return (reverse items)
+              loop (newPair, val : items)
+            else return (reverse items)
 
 {-|
 Returns the list of key/value pairs whose keys lie between the provided range.
@@ -103,24 +102,23 @@ getRangePairs
   -> k             -- ^ The start of the range (inclusive).
   -> k             -- ^ The end of the range (inclusive).
   -> m [(k, v)]    -- ^ The matching pairs.
-getRangePairs env dbi start end = liftIO . doInReadTxn env $ \txn -> do
-  cursor <- cursorOpen txn dbi
+getRangePairs env dbi start end = liftIO . doInReadTxn env $ \txn ->
+  doInCursor txn dbi $ \cursor ->
+    toMdbxVal start $ \skey ->
+      toMdbxVal end $ \ekey -> do
+        pair1 <- cursorRange cursor skey
+        flip fix (pair1, []) $ \loop (pair, items) -> do
+          isValid <- pairLEKey txn dbi ekey pair
 
-  toMdbxVal start $ \skey ->
-    toMdbxVal end $ \ekey -> do
-      pair1 <- cursorRange cursor skey
-      flip fix (pair1, []) $ \loop (pair, items) -> do
-        isValid <- pairLEKey txn dbi ekey pair
+          if isValid
+            then do
+              key <- fromMdbxVal . fst . fromJust $ pair
+              val <- fromMdbxVal . snd . fromJust $ pair
 
-        if isValid
-          then do
-            key <- fromMdbxVal . fst . fromJust $ pair
-            val <- fromMdbxVal . snd . fromJust $ pair
+              newPair <- cursorNext cursor
 
-            newPair <- cursorNext cursor
-
-            loop (newPair, (key, val) : items)
-          else return (reverse items)
+              loop (newPair, (key, val) : items)
+            else return (reverse items)
 
 {-|
 Returns the minimum and maximum keys, and their respective values, between the
@@ -138,19 +136,18 @@ getBounds
   -> k                             -- ^ The end of the range (inclusive).
   -> m (Maybe ((k, v), (k, v)))    -- ^ The bounding pairs, if any.
 getBounds env dbi start end = liftIO . doInReadTxn env $ \txn -> do
-  cursor <- cursorOpen txn dbi
+  doInCursor txn dbi $ \cursor ->
+    toMdbxVal start $ \skey ->
+      toMdbxVal end $ \ekey -> do
+        pairMem1 <- cursorRange cursor skey
+        isValid1 <- pairLEKey txn dbi ekey pairMem1
+        pair1 <- fetchIfValid isValid1 pairMem1
 
-  toMdbxVal start $ \skey ->
-    toMdbxVal end $ \ekey -> do
-      pairMem1 <- cursorRange cursor skey
-      isValid1 <- pairLEKey txn dbi ekey pairMem1
-      pair1 <- fetchIfValid isValid1 pairMem1
+        pairMem2 <- runMaybeT $ MaybeT (cursorAt cursor ekey) <|> MaybeT (cursorPrev cursor)
+        isValid2 <- pairGEKey txn dbi skey pairMem2
+        pair2 <- fetchIfValid isValid2 pairMem2
 
-      pairMem2 <- runMaybeT $ MaybeT (cursorAt cursor ekey) <|> MaybeT (cursorPrev cursor)
-      isValid2 <- pairGEKey txn dbi skey pairMem2
-      pair2 <- fetchIfValid isValid2 pairMem2
-
-      return $ (,) <$> pair1 <*> pair2
+        return $ (,) <$> pair1 <*> pair2
   where
     fromMdbxPairs (mkey, mval) = (,) <$> fromMdbxVal mkey <*> fromMdbxVal mval
     fetchIfValid True pairMem = mapM fromMdbxPairs pairMem
@@ -222,20 +219,19 @@ delRange
   -> m ()
 delRange env dbi start end =
   liftIO . doInWriteTxn env $ \txn -> do
-    cursor <- cursorOpen txn dbi
+    doInCursor txn dbi $ \cursor ->
+      toMdbxVal start $ \skey ->
+        toMdbxVal end $ \ekey -> do
+          pair1 <- cursorRange cursor skey
+          flip fix pair1 $ \loop pair -> do
+            isValid <- pairLEKey txn dbi ekey pair
 
-    toMdbxVal start $ \skey ->
-      toMdbxVal end $ \ekey -> do
-        pair1 <- cursorRange cursor skey
-        flip fix pair1 $ \loop pair -> do
-          isValid <- pairLEKey txn dbi ekey pair
+            when isValid $ do
+              let mkey = fst . fromJust $ pair
+              itemDel txn dbi mkey Nothing
+              newPair <- cursorNext cursor
 
-          when isValid $ do
-            let mkey = fst . fromJust $ pair
-            itemDel txn dbi mkey Nothing
-            newPair <- cursorNext cursor
-
-            loop newPair
+              loop newPair
 
 -- Helpers
 
@@ -302,6 +298,17 @@ doInTxn env parentTxn flags action = do
     return res
   where
     handleEx txn e = txnAbort txn >> throw e
+
+{-|
+Runs the given action with an open cursor which will be closed when finished or
+on error.
+-}
+doInCursor
+  :: MdbxTxn
+  -> MdbxDbi
+  -> (MdbxCursor -> IO a)
+  -> IO a
+doInCursor txn dbi action = bracket (cursorOpen txn dbi) cursorClose action
 
 handleAny :: (SomeException -> IO a) -> IO a -> IO a
 handleAny action handler = catch handler action
