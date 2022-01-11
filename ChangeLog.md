@@ -1,3 +1,8 @@
+### 0.2.1.1
+
+* Upgrade libmdbx to latest version (30b3cc3).
+* Properly close cursor after use.
+
 ### 0.2.1.0
 
 * Add proper transaction handling for Database module (commit on success but
