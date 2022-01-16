@@ -17,6 +17,7 @@ module Mdbx.Types (
   MdbxEnv,
   MdbxTxn,
   MdbxDbi,
+  MdbxCursor,
   MdbxVal(..),
   MdbxEnvMode(..),
   MdbxEnvFlags(..),
