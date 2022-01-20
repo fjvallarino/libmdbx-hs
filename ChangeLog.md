@@ -2,6 +2,7 @@
 
 * Upgrade libmdbx to latest version (30b3cc3).
 * Properly close cursor after use.
+* Document the need of including `MdbxNotls` when using the multi-threaded runtime.
 
 ### 0.2.1.0
 
