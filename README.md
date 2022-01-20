@@ -44,7 +44,7 @@ data User = User {
 deriving via (MdbxItemStore User) instance MdbxItem User
 
 openEnvDbi :: IO MdbxEnv
-openEnvDbi = envOpen "./test.db" def [MdbxNosubdir, MdbxCoalesce, MdbxLiforeclaim]
+openEnvDbi = envOpen "./test.db" def [MdbxNosubdir, MdbxCoalesce, MdbxLiforeclaim, MdbxNotls]
 
 userKey :: User -> Text
 userKey user = "user-" <> _username user
@@ -77,6 +77,10 @@ only during a transaction; delaying the operation may cause an invalid read and
 consequently a crash.
 
 Write operations should always be performed from the same OS thread.
+
+When using the multi-threaded runtime, the `MdbxNotls` flag is required at
+environment creation. Failing to include it in the list of flags will result in
+a random crash.
 
 ## Dependencies
 

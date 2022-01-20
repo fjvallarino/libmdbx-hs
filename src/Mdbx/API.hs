@@ -73,7 +73,13 @@ keyCmp
   -> m Int
 keyCmp txn dbi key1 key2 = liftIO $ mdbx_cmp txn dbi key1 key2
 
--- | Opens an environment.
+{-|
+Opens an environment.
+
+When using the multi-threaded runtime, the `MdbxNotls` flag is required at
+environment creation. Failing to include it in the list of flags will result in
+a random crash.
+-}
 envOpen
   :: (MonadIO m, MonadFail m)
   => String
