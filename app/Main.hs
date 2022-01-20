@@ -10,20 +10,20 @@
 module Main where
 
 import Control.Exception (bracket)
+import Data.Binary
 import Data.Default
-import Data.Store
 import Data.Text (Text)
 import GHC.Generics
 
 import Mdbx
-import Mdbx.Store
+import Mdbx.Binary
 
 data User = User {
   _username :: !Text,
   _password :: !Text
-} deriving (Eq, Show, Generic, Store)
+} deriving (Eq, Show, Generic, Binary)
 
-deriving via (MdbxItemStore User) instance MdbxItem User
+deriving via (MdbxItemBinary User) instance MdbxItem User
 
 openEnvDbi :: IO MdbxEnv
 openEnvDbi = envOpen "./test.db" def [MdbxNosubdir, MdbxCoalesce, MdbxLiforeclaim]
