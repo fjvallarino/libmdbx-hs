@@ -1,17 +1,13 @@
 # libmdbx-hs
 
-A [libmdbx](https://github.com/erthink/libmdbx) wrapper, providing low level
+A [libmdbx](https://gitflic.ru/project/erthink/libmdbx) wrapper, providing low level
 access to its API plus a set of high level functions for common operations.
 
-Excerpt from libmdbx's [documentation](https://github.com/erthink/libmdbx):
+Excerpt from libmdbx's [documentation](https://gitflic.ru/project/erthink/libmdbx):
 
-_**libmdbx** is an extremely fast, compact, powerful, embedded,
-transactional [key-value database](https://en.wikipedia.org/wiki/Key-value_database),
-with permissive license._
+_**libmdbx** is an extremely fast, compact, powerful, embedded, transactional [key-value database](https://en.wikipedia.org/wiki/Key-value_database), with [Apache 2.0 license](https://gitflic.ru/project/erthink/libmdbx/blob?file=LICENSE)._
 
-_Historically, **libmdbx** is a deeply revised and extended descendant of the amazing
-[Lightning Memory-Mapped Database](https://en.wikipedia.org/wiki/Lightning_Memory-Mapped_Database).
-**libmdbx** inherits all benefits from _LMDB_, but resolves some issues and adds a set of improvements._
+_Historically, **libmdbx** is a deeply revised and extended descendant of the amazing [Lightning Memory-Mapped Database](https://en.wikipedia.org/wiki/Lightning_Memory-Mapped_Database). **libmdbx** inherits all benefits from **LMDB**, but resolves some issues and adds [a set of improvements](#improvements-beyond-lmdb)_.
 
 ## Usage
 
@@ -26,7 +22,7 @@ Using libmdbx's low level interface involves the following steps:
 - Committing or aborting the transaction.
 
 See [Hackage](https://hackage.haskell.org/package/libmdbx-hs/Mdbx-API.html) for
-the low level interface or [libmdbx's](https://erthink.github.io/libmdbx)
+the low level interface or [libmdbx's](https://libmdbx.dqdkfa.ru/)
 documentation for more details on internals.
 
 ### High level interface
@@ -89,6 +85,6 @@ the project, to avoid requiring a separate library install.
 
 ## License
 
-libmdbx is licensed under the [The OpenLDAP Public License](https://github.com/erthink/libmdbx/blob/master/LICENSE).
+libmdbx is licensed under the [Apache 2.0 License](https://gitflic.ru/project/erthink/libmdbx/blob/?file=LICENSE&branch=master).
 
 libmdbx-hs is licensed under the [BSD-3 License](LICENSE).
