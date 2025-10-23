@@ -149,10 +149,10 @@ class MdbxItem i where
 
 instance MdbxItem Text where
   fromMdbxVal (MdbxVal sz ptr) =
-    fromPtr (castPtr ptr) (fromIntegral sz `div` 2)
+    fromPtr (castPtr ptr) (fromIntegral sz)
 
   toMdbxVal val fn = useAsPtr val $ \ptr size ->
-    fn $ MdbxVal (fromIntegral size * 2) (castPtr ptr)
+    fn $ MdbxVal (fromIntegral size) (castPtr ptr)
 
 instance MdbxItem ByteString where
   fromMdbxVal (MdbxVal sz ptr) =

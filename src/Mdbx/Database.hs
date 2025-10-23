@@ -80,7 +80,7 @@ getRange env dbi start end = liftIO . doInReadTxn env $ \txn -> do
   doInCursor txn dbi $ \cursor ->
     toMdbxVal start $ \skey ->
       toMdbxVal end $ \ekey -> do
-        pair1 <- cursorRange cursor skey
+        pair1 <- cursorRangeGE cursor skey
         flip fix (pair1, []) $ \loop (pair, items) -> do
           isValid <- pairLEKey txn dbi ekey pair
 
@@ -106,7 +106,7 @@ getRangePairs env dbi start end = liftIO . doInReadTxn env $ \txn ->
   doInCursor txn dbi $ \cursor ->
     toMdbxVal start $ \skey ->
       toMdbxVal end $ \ekey -> do
-        pair1 <- cursorRange cursor skey
+        pair1 <- cursorRangeGE cursor skey
         flip fix (pair1, []) $ \loop (pair, items) -> do
           isValid <- pairLEKey txn dbi ekey pair
 
@@ -139,14 +139,12 @@ getBounds env dbi start end = liftIO . doInReadTxn env $ \txn -> do
   doInCursor txn dbi $ \cursor ->
     toMdbxVal start $ \skey ->
       toMdbxVal end $ \ekey -> do
-        pairMem1 <- cursorRange cursor skey
+        pairMem1 <- cursorRangeGE cursor skey
         isValid1 <- pairLEKey txn dbi ekey pairMem1
         pair1 <- fetchIfValid isValid1 pairMem1
-
-        pairMem2 <- runMaybeT $ MaybeT (cursorAt cursor ekey) <|> MaybeT (cursorPrev cursor)
+        pairMem2 <- cursorRangeLE cursor ekey
         isValid2 <- pairGEKey txn dbi skey pairMem2
         pair2 <- fetchIfValid isValid2 pairMem2
-
         return $ (,) <$> pair1 <*> pair2
   where
     fromMdbxPairs (mkey, mval) = (,) <$> fromMdbxVal mkey <*> fromMdbxVal mval

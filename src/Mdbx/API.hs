@@ -37,6 +37,8 @@ module Mdbx.API (
   cursorLast,
   cursorAt,
   cursorRange,
+  cursorRangeGE,
+  cursorRangeLE,
   cursorNext,
   cursorPrev,
   cursorMove,
@@ -265,6 +267,22 @@ cursorRange
   -> m (Maybe (MdbxVal, MdbxVal))
 cursorRange cur key = cursorMove cur key MdbxSetRange
 
+-- | Moves to the given key or first greater than it. Useful for searching.
+cursorRangeGE
+  :: (MonadIO m, MonadFail m)
+  => MdbxCursor
+  -> MdbxVal
+  -> m (Maybe (MdbxVal, MdbxVal))
+cursorRangeGE cur key = cursorMove cur key MdbxToKeyGreaterOrEqual
+
+-- | Moves to the given key or first greater than it. Useful for searching.
+cursorRangeLE
+  :: (MonadIO m, MonadFail m)
+  => MdbxCursor
+  -> MdbxVal
+  -> m (Maybe (MdbxVal, MdbxVal))
+cursorRangeLE cur key = cursorMove cur key MdbxToKeyLesserOrEqual
+
 -- | Moves to the next key.
 cursorNext
   :: (MonadIO m, MonadFail m)
@@ -288,7 +306,7 @@ cursorMove
   -> m (Maybe (MdbxVal, MdbxVal))
 cursorMove cur baseKey op = do
   (ret, key, val) <- liftIO $ mdbx_cursor_get cur baseKey op
-  if ret == fromEnum MdbxNotfound
+  if ret == fromEnum MdbxNotfound || ret == fromEnum MdbxEnodata
     then return Nothing
     else checkError (Just (key, val)) ret
 

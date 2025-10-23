@@ -17,7 +17,7 @@ removeDB = flip catchAny (const $ return ()) $ do
 openEnvDbi :: IO MdbxEnv
 openEnvDbi = do
   removeDB
-  envOpen "./test.db" def [MdbxNosubdir, MdbxCoalesce, MdbxLiforeclaim]
+  envOpen "./test.db" def [MdbxNosubdir, MdbxCoalesce, MdbxLiforeclaim, MdbxNostickythreads]
 
 withDatabase :: ((MdbxEnv, MdbxDbi) -> IO ()) -> IO ()
 withDatabase runTest = bracket openEnvDbi envClose

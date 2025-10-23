@@ -92,10 +92,31 @@ import Foreign.C
 {# pointer *MDBX_env as MdbxEnv newtype #}
 deriving instance Storable MdbxEnv
 
+{-
+  MDBX_ENV_DEFAULTS = 0,
+  MDBX_SYNC_DURABLE = 0,
+  MDBX_VALIDATION = UINT32_C(0x00002 000),
+  MDBX_NOSUBDIR = UINT32_C(0x4 000),
+  MDBX_SAFE_NOSYNC = UINT32_C(0x10 000),
+  MDBX_MAPASYNC = MDBX_SAFE_NOSYNC,
+  MDBX_RDONLY = UINT32_C(0x20 000),
+  MDBX_NOMETASYNC = UINT32_C(0x40 000),
+  MDBX_WRITEMAP = UINT32_C(0x80 000),
+  MDBX_UTTERLY_NOSYNC = MDBX_SAFE_NOSYNC | UINT32_C(0x100 000),
+  MDBX_NOSTICKYTHREADS = UINT32_C(0x200 000),
+  MDBX_EXCLUSIVE = UINT32_C(0x400 000),
+  MDBX_NORDAHEAD = UINT32_C(0x800 000),
+  MDBX_NOMEMINIT = UINT32_C(0x1 000 000),
+  MDBX_COALESCE = UINT32_C(0x2 000 000),
+  MDBX_LIFORECLAIM = UINT32_C(0x4 000 000),
+  MDBX_PAGEPERTURB = UINT32_C(0x8 000 000),
+  MDBX_ACCEDE = UINT32_C(0x40 000 000),
+-}
 -- | Flags for opening an environment.
 data MdbxEnvFlags
   = MdbxEnvDefaults
   | MdbxSyncDurable
+  | MdbxValidation
   | MdbxNosubdir
   | MdbxSafeNosync
   | MdbxMapasync
@@ -103,6 +124,7 @@ data MdbxEnvFlags
   | MdbxNometasync
   | MdbxWritemap
   | MdbxUtterlyNosync
+  | MdbxNostickythreads
   | MdbxNotls
   | MdbxExclusive
   | MdbxNordahead
@@ -164,7 +186,17 @@ deriving instance Storable MdbxTxn
 
 -- | Flags for a transaction.
 data MdbxTxnFlags
-  = MdbxTxnReadwrite
+  = MdbxTxnInvalid
+  | MdbxTxnReadwrite
+  | MdbxTxnFinished
+  | MdbxTxnError
+  | MdbxTxnDirty
+  | MdbxTxnSpills
+  | MdbxTxnHasChild
+  | MdbxTxnParked
+  | MdbxTxnBlocked
+  | MdbxTxnAutounpark
+  | MdbxTxnOusted
   | MdbxTxnNosync
   | MdbxTxnRdonly
   | MdbxTxnNometasync
@@ -339,6 +371,12 @@ data MdbxCursorOp
   | MdbxSetRange
   | MdbxPrevMultiple
   | MdbxSetLowerbound
+  | MdbxSetUpperbound
+  | MdbxToKeyLesserThan
+  | MdbxToKeyLesserOrEqual
+  | MdbxToKeyEqual
+  | MdbxToKeyGreaterOrEqual
+  | MdbxToKeyGreaterThan
   deriving (Show, Eq, Ord)
 
 --{# enum MDBX_cursor_op as MdbxCursorOp {underscoreToCase} deriving (Show, Eq, Ord) #}
